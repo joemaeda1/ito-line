@@ -1,0 +1,770 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no">
+<title>ito-line</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@400;500;700;900&family=Klee+One:wght@400;600&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#1B1F3B;
+    --bg-soft:#262B52;
+    --bg-soft2:#30356a;
+    --card:#F7EFE3;
+    --card-edge:#E4D7BE;
+    --ink:#2B2440;
+    --ink-soft:#5b5470;
+    --thread:#E8714A;
+    --thread-dark:#c75a36;
+    --mustard:#E8B339;
+    --good:#5C9C72;
+    --bad:#C75450;
+    --muted:#9893B5;
+    --white:#fffaf2;
+    --display:'Zen Maru Gothic', sans-serif;
+    --hand:'Klee One', cursive;
+    --mono:'JetBrains Mono', monospace;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:
+      radial-gradient(circle at 15% 8%, rgba(255,255,255,0.06) 0, transparent 2.5%),
+      radial-gradient(circle at 75% 18%, rgba(255,255,255,0.05) 0, transparent 2%),
+      radial-gradient(circle at 40% 30%, rgba(255,255,255,0.04) 0, transparent 1.8%),
+      radial-gradient(circle at 90% 60%, rgba(255,255,255,0.05) 0, transparent 2%),
+      radial-gradient(circle at 25% 75%, rgba(255,255,255,0.04) 0, transparent 1.8%),
+      radial-gradient(circle at 60% 90%, rgba(255,255,255,0.05) 0, transparent 2%),
+      linear-gradient(160deg, var(--bg) 0%, var(--bg-soft2) 100%);
+    background-attachment:fixed;
+    font-family:var(--display);
+    color:var(--white);
+    min-height:100vh;
+    -webkit-tap-highlight-color:transparent;
+  }
+  *:focus-visible{outline:2px solid var(--mustard); outline-offset:2px;}
+  .shell{max-width:480px;margin:0 auto;padding:22px 16px 56px;min-height:100vh;display:flex;flex-direction:column;}
+  .topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;}
+  .brand{font-weight:900;font-size:22px;letter-spacing:0.5px;display:flex;align-items:center;gap:8px;}
+  .brand .thread-dot{width:10px;height:10px;border-radius:50%;background:var(--thread);box-shadow:0 0 0 3px rgba(232,113,74,0.25);}
+  .linkbtn{background:none;border:none;color:var(--muted);font-family:var(--display);font-size:13px;cursor:pointer;padding:6px 8px;border-radius:8px;}
+  .linkbtn:hover{color:var(--white);background:rgba(255,255,255,0.06);}
+  h1{font-size:26px;margin:8px 0 4px;font-weight:900;}
+  h2{font-size:19px;margin:0 0 10px;font-weight:700;}
+  p.subtitle{color:var(--muted);font-size:14px;margin:0 0 22px;line-height:1.7;}
+  .card{
+    background:var(--card);
+    color:var(--ink);
+    border-radius:16px;
+    padding:18px 18px;
+    box-shadow:0 10px 26px rgba(0,0,0,0.28);
+    border:1px solid var(--card-edge);
+    margin-bottom:14px;
+  }
+  .field{margin-bottom:14px;}
+  .label{display:block;font-size:12px;color:var(--ink-soft);margin-bottom:6px;font-weight:700;}
+  .input{
+    width:100%;
+    padding:12px 13px;
+    border-radius:10px;
+    border:1.5px solid var(--card-edge);
+    background:var(--white);
+    color:var(--ink);
+    font-family:var(--display);
+    font-size:15px;
+  }
+  .input:focus{border-color:var(--thread);}
+  .input.mono{font-family:var(--mono);letter-spacing:2px;text-transform:uppercase;}
+  textarea.input{resize:none;font-family:var(--hand);font-size:17px;min-height:54px;}
+  .btn{
+    display:inline-flex;align-items:center;justify-content:center;gap:6px;
+    border:none;border-radius:12px;padding:13px 18px;font-family:var(--display);
+    font-weight:700;font-size:15px;cursor:pointer;width:100%;
+    transition:transform 0.08s ease, box-shadow 0.08s ease;
+  }
+  .btn:active{transform:scale(0.98);}
+  .btn:disabled{opacity:0.45;cursor:not-allowed;}
+  .btn-primary{background:var(--mustard);color:#2B2440;box-shadow:0 4px 0 #b8862099;}
+  .btn-secondary{background:var(--thread);color:var(--white);box-shadow:0 4px 0 #9c4a2c99;}
+  .btn-ghost{background:rgba(255,255,255,0.08);color:var(--white);}
+  .btn-sm{width:auto;padding:8px 12px;font-size:13px;border-radius:9px;}
+  .btn-row{display:flex;gap:10px;}
+  .btn-row .btn{flex:1;}
+  .stack{display:flex;flex-direction:column;gap:10px;}
+  .helper{font-size:13px;color:var(--muted);margin-top:6px;line-height:1.6;}
+  .error{font-size:13px;color:#ffb4ad;background:rgba(199,84,80,0.18);border:1px solid rgba(199,84,80,0.4);padding:10px 12px;border-radius:10px;margin-bottom:14px;}
+  .room-code{
+    font-family:var(--mono);font-weight:700;font-size:34px;letter-spacing:6px;text-align:center;
+    background:var(--white);color:var(--ink);border-radius:12px;padding:14px 0;border:2px dashed var(--thread);
+  }
+  .topic-chip-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px;}
+  .topic-chip{
+    background:var(--white);border:1.5px solid var(--card-edge);border-radius:10px;padding:10px 10px;
+    font-size:13px;text-align:left;cursor:pointer;color:var(--ink);font-family:var(--display);
+  }
+  .topic-chip small{display:block;color:var(--ink-soft);font-size:11px;margin-top:3px;}
+  .topic-chip.selected{border-color:var(--thread);background:#fff3ea;font-weight:700;}
+  .seg{display:flex;background:rgba(255,255,255,0.08);border-radius:11px;padding:4px;gap:4px;margin-bottom:10px;}
+  .seg button{flex:1;border:none;background:transparent;color:var(--muted);padding:9px 4px;border-radius:8px;font-family:var(--display);font-size:13px;font-weight:700;cursor:pointer;}
+  .seg button.active{background:var(--mustard);color:#2B2440;}
+  .player-list{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0 4px;}
+  .player-chip{background:rgba(255,255,255,0.09);border-radius:20px;padding:7px 13px;font-size:13px;display:flex;align-items:center;gap:6px;}
+  .player-chip .host-star{color:var(--mustard);}
+  .topic-banner{
+    background:linear-gradient(135deg, var(--mustard), #f2c862);
+    color:#2B2440;border-radius:14px;padding:14px 16px;margin-bottom:14px;text-align:center;
+  }
+  .topic-banner .ttext{font-size:18px;font-weight:900;}
+  .topic-banner .scale{display:flex;justify-content:space-between;font-size:12px;margin-top:8px;color:#5a4413;font-weight:700;}
+  .number-stage{text-align:center;padding:26px 0 10px;}
+  .number-stage .lab{font-size:13px;color:var(--ink-soft);margin-bottom:6px;}
+  .number-display{
+    font-family:var(--mono);font-weight:700;font-size:64px;color:var(--ink);
+    animation:popin 0.35s ease;
+  }
+  @keyframes popin{from{transform:scale(0.6);opacity:0;}to{transform:scale(1);opacity:1;}}
+  .round-pill{display:inline-block;background:rgba(255,255,255,0.1);border-radius:20px;padding:5px 13px;font-size:12px;color:var(--muted);margin-bottom:10px;}
+  .history-dots{display:flex;gap:5px;margin-bottom:10px;}
+  .history-dots span{width:9px;height:9px;border-radius:50%;display:inline-block;}
+  .thread-wrap{position:relative;padding-left:22px;margin-top:6px;}
+  .thread-wrap::before{content:'';position:absolute;left:7px;top:6px;bottom:6px;width:3px;background:repeating-linear-gradient(to bottom, var(--thread) 0 8px, transparent 8px 14px);border-radius:3px;}
+  .order-card{
+    position:relative;background:var(--card);border:1px solid var(--card-edge);border-radius:13px;
+    padding:12px 14px 12px 16px;margin-bottom:18px;box-shadow:0 6px 14px rgba(0,0,0,0.22);
+  }
+  .order-card:nth-child(odd){transform:rotate(-0.6deg);}
+  .order-card:nth-child(even){transform:rotate(0.6deg);}
+  .order-card::before{
+    content:'';position:absolute;left:-22px;top:14px;width:13px;height:13px;border-radius:50%;
+    background:var(--thread-dark);box-shadow:0 0 0 3px var(--bg-soft2);
+  }
+  .order-card .ocname{font-weight:700;font-size:13px;color:var(--ink-soft);display:flex;align-items:center;justify-content:space-between;}
+  .order-card .occlue{font-family:var(--hand);font-size:19px;color:var(--ink);margin-top:4px;min-height:24px;}
+  .order-card .ocnum{font-family:var(--mono);font-weight:700;font-size:22px;color:var(--thread-dark);margin-top:4px;}
+  .order-controls{display:flex;flex-direction:column;gap:4px;}
+  .order-controls button{
+    width:30px;height:26px;border-radius:7px;border:none;background:rgba(43,36,64,0.08);
+    color:var(--ink);font-size:13px;cursor:pointer;
+  }
+  .order-controls button:disabled{opacity:0.25;}
+  .oc-row{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;}
+  .connector{display:flex;align-items:center;gap:6px;margin:-10px 0 8px 0;padding-left:22px;font-size:12px;color:var(--muted);}
+  .connector.ok{color:var(--good);}
+  .connector.bad{color:#ff9d96;}
+  .result-banner{border-radius:14px;padding:18px;text-align:center;margin-bottom:16px;}
+  .result-banner.success{background:linear-gradient(135deg,#5C9C72,#7fbf8f);color:#0f2c18;}
+  .result-banner.fail{background:linear-gradient(135deg,#C75450,#e08a86);color:#321210;}
+  .result-banner .big{font-size:22px;font-weight:900;}
+  footer.note{margin-top:auto;padding-top:30px;text-align:center;font-size:11.5px;color:var(--muted);line-height:1.7;}
+  .help-box{background:rgba(255,255,255,0.06);border-radius:12px;padding:14px 16px;margin-bottom:16px;font-size:13px;line-height:1.85;color:#dcd9ee;}
+  .help-box ol{margin:6px 0 0;padding-left:20px;}
+  .count-stepper{display:flex;align-items:center;gap:14px;justify-content:center;}
+  .count-stepper button{width:38px;height:38px;border-radius:10px;border:none;background:var(--white);color:var(--ink);font-size:18px;font-weight:700;cursor:pointer;}
+  .count-stepper .num{font-family:var(--mono);font-size:24px;font-weight:700;}
+  .name-rows{display:flex;flex-direction:column;gap:8px;margin-top:10px;}
+  .copy-row{display:flex;gap:8px;align-items:center;margin-top:10px;}
+  @media (prefers-reduced-motion: no-preference){
+    .order-card{animation:settle 0.3s ease;}
+  }
+  @keyframes settle{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:translateY(0);}}
+</style>
+</head>
+<body>
+<div id="app" class="shell"></div>
+<script>
+/* ---------- data ---------- */
+const PRESET_TOPICS = [
+  {text:"辛い食べ物", low:"全然辛くない", high:"激辛"},
+  {text:"高い建物", low:"低い", high:"とても高い"},
+  {text:"速い乗り物", low:"のんびり", high:"超スピード"},
+  {text:"見た目が怖い生き物", low:"かわいい", high:"かなり怖い"},
+  {text:"人気のある観光地", low:"知る人だけ", high:"誰でも知ってる"},
+  {text:"値段が高そうな物", low:"安い", high:"超高級"},
+  {text:"よく寝る動物", low:"あまり寝ない", high:"ずっと寝てる"},
+  {text:"学校の科目の難しさ", low:"簡単", high:"激ムズ"},
+  {text:"朝が苦手な度合い", low:"得意", high:"絶望的に苦手"},
+  {text:"SNSで話題になる度合い", low:"無風", high:"大バズり"},
+  {text:"お弁当に入ってたら嬉しい物", low:"普通", high:"最高に嬉しい"},
+  {text:"旅行に持っていく荷物の量", low:"身軽", high:"大荷物"},
+  {text:"言われたら傷つく一言", low:"気にしない", high:"かなり傷つく"},
+  {text:"親に怒られそうな度合い", low:"軽く注意", high:"大目玉"},
+  {text:"子供の頃の憧れの職業っぽさ", low:"地味", high:"超花形"},
+  {text:"一人カラオケで歌う曲のテンション", low:"しんみり", high:"全力アップテンポ"},
+  {text:"雨の日の過ごし方の楽しさ", low:"だるい", high:"最高に楽しい"},
+  {text:"寒い場所", low:"暖かい", high:"極寒"},
+  {text:"重い物", low:"軽い", high:"超重い"},
+  {text:"香りが強い物", low:"無臭", high:"かなり香る"},
+  {text:"部屋にあると落ち着く物", low:"特に何も", high:"すごく落ち着く"},
+  {text:"テストで出たら泣きそうな問題", low:"楽勝", high:"涙が出る"},
+  {text:"緊張する場面", low:"リラックス", high:"ガチ緊張"},
+  {text:"動物園で人気な動物", low:"通好み", high:"大人気"},
+  {text:"値段の想像がつかない高級品", low:"だいたい分かる", high:"見当もつかない"},
+  {text:"一生に一度しかなさそうな体験", low:"よくある", high:"超レア"},
+  {text:"寝坊した時の絶望度", low:"全然平気", high:"終わった…"},
+  {text:"雪が降りそうな場所", low:"降らない", high:"毎年積もる"},
+  {text:"一人で行くのが気まずい場所", low:"余裕", high:"かなり気まずい"},
+  {text:"大人になって好きになった食べ物の苦手度(昔)", low:"昔から平気", high:"昔は無理だった"},
+  {text:"写真に残したくなる景色の美しさ", low:"普通の景色", high:"絶景すぎる"},
+  {text:"プレゼントでもらって困る度合い", low:"全然困らない", high:"激しく困る"},
+  {text:"ゲームの難易度", low:"イージー", high:"鬼畜難易度"},
+  {text:"結婚式で泣きそうな度合い", low:"泣かない", high:"号泣確定"},
+  {text:"怪談として怖い度合い", low:"全然怖くない", high:"夜眠れない"},
+  {text:"締め切り前の焦り具合", low:"余裕がある", high:"パニック"},
+  {text:"お土産で買って後悔する度合い", low:"満足", high:"大後悔"},
+  {text:"一人暮らしで実家が恋しくなる物", low:"特に思わない", high:"猛烈に恋しい"},
+  {text:"友達に勧めたい映画の面白さ", low:"普通に良い", high:"人生変わるレベル"},
+  {text:"田舎っぽさのある場所", low:"都会的", high:"超ド田舎"},
+];
+
+/* ---------- utils ---------- */
+function uid(n){n=n||6;const c='abcdefghjkmnpqrstuvwxyz23456789';let s='';for(let i=0;i<n;i++)s+=c[Math.floor(Math.random()*c.length)];return s;}
+function genCode(){const c='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';let s='';for(let i=0;i<4;i++)s+=c[Math.floor(Math.random()*c.length)];return s;}
+function shuffle(arr){const a=arr.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+function sampleNumbers(n){const pool=Array.from({length:100},(_,i)=>i+1);return shuffle(pool).slice(0,n);}
+function pickRandomTopic(used){used=used||[];let pool=PRESET_TOPICS.filter(t=>!used.includes(t.text));if(pool.length===0)pool=PRESET_TOPICS;return pool[Math.floor(Math.random()*pool.length)];}
+function esc(s){return (s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+
+/* ---------- global state ---------- */
+let mode=null;            // null | 'online' | 'local'
+let onlineStep='home';    // home | create | join
+let myId=null, myName='';
+let room=null;
+let pollTimer=null, pendingRender=false;
+let errorMsg='';
+let showHelp=false;
+
+let local=null;            // {players:{id:{name,number,clue}}, order:[], phase, round, topicMode, pendingTopic, topic, passQueue, passIdx, history}
+let localStep='setup';     // setup | playing
+let localCount=4;
+let localNames=['','','',''];
+
+/* ---------- storage helpers ---------- */
+function roomKey(code){return 'room:'+code;}
+async function fetchRoom(code){
+  try{ const r = await window.storage.get(roomKey(code), true); return r ? JSON.parse(r.value) : null; }
+  catch(e){ return null; }
+}
+async function pushRoom(r){
+  r.updatedAt = Date.now();
+  room = r;
+  render();
+  try{ await window.storage.set(roomKey(r.code), JSON.stringify(r), true); }
+  catch(e){ errorMsg='通信エラーが発生しました。もう一度お試しください。'; render(); }
+}
+function isTyping(){const a=document.activeElement;return a && (a.tagName==='INPUT'||a.tagName==='TEXTAREA');}
+document.addEventListener('focusout', ()=>{ if(pendingRender){ pendingRender=false; render(); } });
+
+function startPolling(code){
+  clearInterval(pollTimer);
+  pollTimer=setInterval(async ()=>{
+    if(!room) return;
+    const r = await fetchRoom(code);
+    if(!r) return;
+    if(JSON.stringify(r)!==JSON.stringify(room)){
+      room=r;
+      if(isTyping()) pendingRender=true; else render();
+    }
+  }, 1800);
+}
+function stopPolling(){ clearInterval(pollTimer); pollTimer=null; }
+
+/* ---------- navigation ---------- */
+function goTitle(){ stopPolling(); mode=null; onlineStep='home'; room=null; local=null; errorMsg=''; render(); }
+function goOnlineHome(){ mode='online'; onlineStep='home'; errorMsg=''; render(); }
+function goLocalSetup(){ mode='local'; localStep='setup'; errorMsg=''; render(); }
+function toggleHelp(){ showHelp=!showHelp; render(); }
+
+/* ---------- online actions ---------- */
+async function createRoomAction(){
+  const name=(document.getElementById('cr-name').value||'').trim().slice(0,12) || 'プレイヤー1';
+  myId='p_'+uid(); myName=name;
+  const code=genCode();
+  const r={
+    code, hostId:myId, phase:'lobby', topicMode:'presetRandom', pendingTopic:null,
+    players:{ [myId]:{name, number:null, clue:'', submitted:false, joinedAt:Date.now()} },
+    order:[], topic:null, round:0, usedTopics:[], lastResult:null, history:[]
+  };
+  onlineStep='room';
+  await pushRoom(r);
+  startPolling(code);
+}
+async function joinRoomAction(){
+  const codeRaw=(document.getElementById('jr-code').value||'').trim().toUpperCase();
+  const name=(document.getElementById('jr-name').value||'').trim().slice(0,12) || 'ゲスト';
+  if(!codeRaw){ errorMsg='ルームコードを入力してください'; render(); return; }
+  const r = await fetchRoom(codeRaw);
+  if(!r){ errorMsg='そのコードのルームが見つかりません'; render(); return; }
+  myId='p_'+uid(); myName=name;
+  r.players[myId]={name, number:null, clue:'', submitted:false, joinedAt:Date.now()};
+  onlineStep='room';
+  errorMsg='';
+  await pushRoom(r);
+  startPolling(codeRaw);
+}
+function isHost(){ return room && room.hostId===myId; }
+
+function hostSetTopicMode(m){ if(!isHost())return; room.topicMode=m; room.pendingTopic=null; pushRoom(room); }
+function hostChoosePreset(idx){ if(!isHost())return; room.pendingTopic = PRESET_TOPICS[idx]; pushRoom(room); }
+function hostSaveCustomTopic(){
+  if(!isHost())return;
+  const text=(document.getElementById('ct-text').value||'').trim().slice(0,28);
+  const low=(document.getElementById('ct-low').value||'').trim().slice(0,10)||'弱い';
+  const high=(document.getElementById('ct-high').value||'').trim().slice(0,10)||'強い';
+  if(!text){ errorMsg='お題を入力してください'; render(); return; }
+  room.pendingTopic={text, low, high};
+  errorMsg='';
+  pushRoom(room);
+}
+function hostStartRound(){
+  if(!isHost())return;
+  const ids=Object.keys(room.players);
+  if(ids.length<2){ errorMsg='2人以上必要です'; render(); return; }
+  let topic=room.pendingTopic;
+  if(room.topicMode==='presetRandom' || !topic){
+    topic=pickRandomTopic(room.usedTopics);
+    room.usedTopics=(room.usedTopics||[]).concat([topic.text]);
+  }
+  const nums=sampleNumbers(ids.length);
+  shuffle(ids).forEach((id,i)=>{
+    room.players[id].number=nums[i];
+    room.players[id].clue='';
+    room.players[id].submitted=false;
+  });
+  room.topic=topic;
+  room.pendingTopic=null;
+  room.phase='clue';
+  room.round=(room.round||0)+1;
+  room.order=shuffle(ids);
+  room.lastResult=null;
+  errorMsg='';
+  pushRoom(room);
+}
+function submitClueAction(){
+  const text=(document.getElementById('clue-input').value||'').trim().slice(0,40);
+  room.players[myId].clue=text;
+  room.players[myId].submitted=true;
+  const all=Object.values(room.players).every(p=>p.submitted);
+  if(all) room.phase='order';
+  pushRoom(room);
+}
+function moveOrder(idx,dir){
+  const o=room.order.slice();
+  const j=idx+dir;
+  if(j<0||j>=o.length)return;
+  [o[idx],o[j]]=[o[j],o[idx]];
+  room.order=o;
+  pushRoom(room);
+}
+function hostReveal(){
+  if(!isHost())return;
+  const o=room.order;
+  let success=true;
+  for(let i=0;i<o.length-1;i++){
+    if(room.players[o[i]].number > room.players[o[i+1]].number){ success=false; break; }
+  }
+  room.phase='reveal';
+  room.lastResult={success};
+  room.history=(room.history||[]).concat([success]);
+  pushRoom(room);
+}
+function hostNextRound(){
+  if(!isHost())return;
+  room.phase='lobby';
+  room.lastResult=null;
+  pushRoom(room);
+}
+function copyCode(){
+  const code=room.code;
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(code).then(()=>{
+      const el=document.getElementById('copy-status'); if(el) el.textContent='コピーしました!';
+    }).catch(()=>{ const el=document.getElementById('copy-status'); if(el) el.textContent='コードをそのまま伝えてね'; });
+  }
+}
+
+/* ---------- local mode actions ---------- */
+function setLocalCount(delta){
+  localCount=Math.max(2,Math.min(8,localCount+delta));
+  while(localNames.length<localCount) localNames.push('');
+  localNames=localNames.slice(0,localCount);
+  render();
+}
+function startLocalGame(){
+  const players={};
+  for(let i=0;i<localCount;i++){
+    const nm=(document.getElementById('ln-'+i).value||'').trim().slice(0,12) || ('プレイヤー'+(i+1));
+    players[String(i)]={name:nm, number:null, clue:''};
+  }
+  const topicMode=local && local.topicMode ? local.topicMode : 'presetRandom';
+  local={
+    players, topicMode, pendingTopic:null, topic:null,
+    phase:'pass', round:0, order:[], passIdx:0, usedTopics:[], history:[]
+  };
+  beginLocalRound();
+  localStep='playing';
+  render();
+}
+function beginLocalRound(){
+  const ids=Object.keys(local.players);
+  let topic=local.pendingTopic;
+  if(local.topicMode==='presetRandom' || !topic){
+    topic=pickRandomTopic(local.usedTopics);
+    local.usedTopics=(local.usedTopics||[]).concat([topic.text]);
+  }
+  const nums=sampleNumbers(ids.length);
+  shuffle(ids).forEach((id,i)=>{ local.players[id].number=nums[i]; local.players[id].clue=''; });
+  local.topic=topic;
+  local.pendingTopic=null;
+  local.phase='pass';
+  local.passIdx=0;
+  local.round=(local.round||0)+1;
+  local.order=shuffle(ids);
+}
+function localRevealOwnNumber(){ local.phase='pass-show'; render(); }
+function localSubmitClue(){
+  const ids=Object.keys(local.players);
+  const id=ids[local.passIdx];
+  const text=(document.getElementById('lc-input').value||'').trim().slice(0,40);
+  local.players[id].clue=text;
+  local.passIdx++;
+  if(local.passIdx>=ids.length){ local.phase='order'; }
+  else { local.phase='pass'; }
+  render();
+}
+function localMoveOrder(idx,dir){
+  const o=local.order.slice();
+  const j=idx+dir;
+  if(j<0||j>=o.length)return;
+  [o[idx],o[j]]=[o[j],o[idx]];
+  local.order=o;
+  render();
+}
+function localReveal(){
+  const o=local.order;
+  let success=true;
+  for(let i=0;i<o.length-1;i++){
+    if(local.players[o[i]].number > local.players[o[i+1]].number){ success=false; break; }
+  }
+  local.phase='reveal';
+  local.lastResult={success};
+  local.history=(local.history||[]).concat([success]);
+  render();
+}
+function localGoTopicPick(){ local.phase='retopic'; render(); }
+function localSetTopicMode(m){ local.topicMode=m; local.pendingTopic=null; render(); }
+function localChoosePreset(idx){ local.pendingTopic=PRESET_TOPICS[idx]; render(); }
+function localSaveCustomTopic(){
+  const text=(document.getElementById('lct-text').value||'').trim().slice(0,28);
+  const low=(document.getElementById('lct-low').value||'').trim().slice(0,10)||'弱い';
+  const high=(document.getElementById('lct-high').value||'').trim().slice(0,10)||'強い';
+  if(!text){ errorMsg='お題を入力してください'; render(); return; }
+  local.pendingTopic={text, low, high};
+  errorMsg='';
+  beginLocalRound();
+  render();
+}
+function localStartNextRound(){
+  if(local.topicMode==='presetRandom'){ beginLocalRound(); render(); }
+  else { localGoTopicPick(); }
+}
+
+/* ---------- shared render pieces ---------- */
+function topicModeSelector(current, onModeFn, presetGridVisible, onPickPreset, onSaveCustom, idPrefix){
+  let html = `<div class="seg">
+    <button class="${current==='presetRandom'?'active':''}" onclick="${onModeFn}('presetRandom')">ランダム</button>
+    <button class="${current==='presetChoice'?'active':''}" onclick="${onModeFn}('presetChoice')">選ぶ</button>
+    <button class="${current==='custom'?'active':''}" onclick="${onModeFn}('custom')">自分で作る</button>
+  </div>`;
+  if(current==='presetChoice'){
+    html += `<div class="topic-chip-grid">`;
+    PRESET_TOPICS.slice(0,8).forEach((t,i)=>{
+      html += `<button class="topic-chip" onclick="${onPickPreset}(${i})">${esc(t.text)}<small>${esc(t.low)} → ${esc(t.high)}</small></button>`;
+    });
+    html += `</div><div class="helper">候補は一部だけ表示しています。ランダムでもOK!</div>`;
+  }
+  if(current==='custom'){
+    html += `<div class="field"><input id="${idPrefix}-text" class="input" maxlength="28" placeholder="例: 部屋にあると落ち着く物"></div>
+    <div class="btn-row">
+      <input id="${idPrefix}-low" class="input" maxlength="10" placeholder="低い側(例: 弱い)">
+      <input id="${idPrefix}-high" class="input" maxlength="10" placeholder="高い側(例: 強い)">
+    </div>
+    <div style="height:10px;"></div>
+    <button class="btn btn-secondary" onclick="${onSaveCustom}()">このお題にする</button>`;
+  }
+  return html;
+}
+
+function renderHistoryDots(history){
+  if(!history || history.length===0) return '';
+  let html=`<div class="history-dots">`;
+  history.forEach(h=>{ html += `<span style="background:${h?'var(--good)':'var(--bad)'}"></span>`; });
+  return html + `</div>`;
+}
+
+function renderOrderAndReveal(playersObj, order, topic, phase, round, history, hostAllowed, cb){
+  let html='';
+  html += renderHistoryDots(history);
+  html += `<div class="round-pill">ラウンド ${round}</div>`;
+  html += `<div class="topic-banner"><div class="ttext">${esc(topic.text)}</div>
+    <div class="scale"><span>${esc(topic.low)}</span><span>${esc(topic.high)}</span></div></div>`;
+
+  if(phase==='order'){
+    html += `<p class="subtitle">ヒントを見ながら、数字が小さい順(上→下)に並べ替えよう。並べ終わったら「判定する」!</p>`;
+    html += `<div class="thread-wrap">`;
+    order.forEach((id,idx)=>{
+      const p=playersObj[id];
+      html += `<div class="order-card"><div class="oc-row">
+        <div style="flex:1;">
+          <div class="ocname"><span>${esc(p.name)}</span></div>
+          <div class="occlue">${p.clue ? esc(p.clue) : '<span style=\"color:#a89; font-size:14px;\">(ヒントなし)</span>'}</div>
+        </div>
+        <div class="order-controls">
+          <button onclick="${cb.move}(${idx},-1)" ${idx===0?'disabled':''}>▲</button>
+          <button onclick="${cb.move}(${idx},1)" ${idx===order.length-1?'disabled':''}>▼</button>
+        </div>
+      </div></div>`;
+    });
+    html += `</div>`;
+    if(hostAllowed){
+      html += `<button class="btn btn-primary" onclick="${cb.reveal}()">判定する</button>`;
+    } else {
+      html += `<div class="helper">ホストが判定します。みんなで相談して並べてね。</div>`;
+    }
+  } else if(phase==='reveal'){
+    const success = order.every((id,idx)=> idx===order.length-1 || playersObj[id].number < playersObj[order[idx+1]].number);
+    html += `<div class="result-banner ${success?'success':'fail'}"><div class="big">${success?'成功! 糸はつながった 🧵':'失敗… 糸が切れた'}</div></div>`;
+    html += `<div class="thread-wrap">`;
+    order.forEach((id,idx)=>{
+      const p=playersObj[id];
+      html += `<div class="order-card"><div class="oc-row"><div style="flex:1;">
+        <div class="ocname"><span>${esc(p.name)}</span><span class="ocnum">${p.number}</span></div>
+        <div class="occlue">${p.clue ? esc(p.clue) : ''}</div>
+      </div></div></div>`;
+      if(idx<order.length-1){
+        const ok = p.number < playersObj[order[idx+1]].number;
+        html += `<div class="connector ${ok?'ok':'bad'}">${ok?'✓ つながった':'✕ ここで切れた'}</div>`;
+      }
+    });
+    html += `</div>`;
+    if(hostAllowed){
+      html += `<button class="btn btn-primary" onclick="${cb.next}()">もう一度プレイ</button>`;
+    } else {
+      html += `<div class="helper">ホストが次のラウンドを準備しています…</div>`;
+    }
+  }
+  return html;
+}
+
+/* ---------- top-level render ---------- */
+function render(){
+  const app=document.getElementById('app');
+  let html='';
+  if(mode===null) html=renderTitleScreen();
+  else if(mode==='online') html=renderOnlineMode();
+  else if(mode==='local') html=renderLocalMode();
+  app.innerHTML = html;
+}
+
+function renderTitleScreen(){
+  let html = `<div class="topbar"><div class="brand"><span class="thread-dot"></span>ito-line</div>
+    <button class="linkbtn" onclick="toggleHelp()">${showHelp?'閉じる':'遊び方'}</button></div>`;
+  html += `<h1>直感で1本につなぐ<br>協力カードゲーム</h1>`;
+  html += `<p class="subtitle">お題に対する自分の数字(1〜100)を、数字を言わずにヒントだけで伝えて、みんなで小さい順に並べよう。</p>`;
+  if(showHelp){
+    html += `<div class="help-box"><b>遊び方</b><ol>
+      <li>お題が出る(例:「辛い食べ物」)</li>
+      <li>全員に1〜100の数字がひとつずつ配られる(自分しか見えない)</li>
+      <li>自分の数字がお題の中でどのくらいか、ヒントの言葉で表現する</li>
+      <li>みんなで相談して、ヒントだけを頼りに小さい順に並べる</li>
+      <li>並べ終わったら判定。数字の順に並んでいれば成功!</li>
+    </ol></div>`;
+  }
+  if(errorMsg) html += `<div class="error">${esc(errorMsg)}</div>`;
+  html += `<div class="stack">
+    <button class="btn btn-primary" onclick="goOnlineHome()">📱 オンラインで遊ぶ(各自のスマホ)</button>
+    <button class="btn btn-secondary" onclick="goLocalSetup()">🔄 1台のデバイスを回して遊ぶ</button>
+  </div>`;
+  html += `<footer class="note">カードゲーム「ito」にインスパイアされた非公式のファンメイドアプリです。</footer>`;
+  return html;
+}
+
+function renderOnlineMode(){
+  let html = `<div class="topbar"><div class="brand"><span class="thread-dot"></span>ito-line</div>
+    <button class="linkbtn" onclick="goTitle()">ホームへ</button></div>`;
+
+  if(onlineStep==='home'){
+    html += `<h2>オンラインで遊ぶ</h2>`;
+    if(errorMsg) html += `<div class="error">${esc(errorMsg)}</div>`;
+    html += `<div class="card">
+      <div class="field"><label class="label">あなたの名前</label><input id="cr-name" class="input" maxlength="12" placeholder="例: たろう"></div>
+      <button class="btn btn-primary" onclick="createRoomAction()">ルームを作る(ホストになる)</button>
+    </div>
+    <div class="card">
+      <div class="field"><label class="label">ルームコード</label><input id="jr-code" class="input mono" maxlength="4" placeholder="ABCD"></div>
+      <div class="field"><label class="label">あなたの名前</label><input id="jr-name" class="input" maxlength="12" placeholder="例: はな"></div>
+      <button class="btn btn-secondary" onclick="joinRoomAction()">ルームに参加する</button>
+    </div>`;
+    return html;
+  }
+
+  if(!room){ return html + `<p class="subtitle">読み込み中…</p>`; }
+
+  // room.phase based rendering
+  if(room.phase==='lobby'){
+    html += `<h2>ルーム ${room.code}</h2>`;
+    if(errorMsg) html += `<div class="error">${esc(errorMsg)}</div>`;
+    html += `<div class="room-code">${room.code}</div>
+      <div class="copy-row"><button class="btn btn-ghost btn-sm" onclick="copyCode()">コードをコピー</button><span id="copy-status" class="helper"></span></div>`;
+    html += `<div class="player-list">`;
+    Object.values(room.players).forEach(p=>{
+      html += `<div class="player-chip">${p===room.players[room.hostId]?'<span class=\"host-star\">★</span>':''}${esc(p.name)}</div>`;
+    });
+    html += `</div>`;
+    if(isHost()){
+      html += `<div class="card"><h2 style="font-size:15px;">お題の決め方</h2>`;
+      html += topicModeSelector(room.topicMode, 'hostSetTopicMode', true, 'hostChoosePreset', 'hostSaveCustomTopic', 'ct');
+      if(room.pendingTopic){
+        html += `<div class="helper">選択中: 「${esc(room.pendingTopic.text)}」</div>`;
+      }
+      html += `</div>`;
+      html += `<button class="btn btn-primary" onclick="hostStartRound()">${room.round>0?'次のラウンドを始める':'ゲーム開始'}</button>`;
+    } else {
+      html += `<p class="subtitle">ホストがお題を選んでいます。もうすぐ始まります…</p>`;
+    }
+    return html;
+  }
+
+  if(room.phase==='clue'){
+    const me=room.players[myId];
+    html += renderHistoryDots(room.history);
+    html += `<div class="round-pill">ラウンド ${room.round}</div>`;
+    html += `<div class="topic-banner"><div class="ttext">${esc(room.topic.text)}</div>
+      <div class="scale"><span>${esc(room.topic.low)}</span><span>${esc(room.topic.high)}</span></div></div>`;
+    html += `<div class="card number-stage"><div class="lab">あなたの数字</div>
+      <div class="number-display">${me.number}</div></div>`;
+    if(!me.submitted){
+      html += `<div class="field"><label class="label">ヒントを入力(数字は言わないでね)</label>
+        <textarea id="clue-input" class="input" maxlength="40" placeholder="例: たまに無性に食べたくなる"></textarea></div>`;
+      html += `<button class="btn btn-primary" onclick="submitClueAction()">ヒントを送信</button>`;
+    } else {
+      html += `<p class="subtitle">送信しました。他の人を待っています…</p>`;
+    }
+    const submittedCount = Object.values(room.players).filter(p=>p.submitted).length;
+    html += `<div class="helper">${submittedCount}/${Object.keys(room.players).length}人が送信済み</div>`;
+    return html;
+  }
+
+  if(room.phase==='order' || room.phase==='reveal'){
+    html += renderOrderAndReveal(room.players, room.order, room.topic, room.phase, room.round, room.history, isHost(), {move:'moveOrder', reveal:'hostReveal', next:'hostNextRound'});
+    return html;
+  }
+
+  return html;
+}
+
+function renderLocalMode(){
+  let html = `<div class="topbar"><div class="brand"><span class="thread-dot"></span>ito-line</div>
+    <button class="linkbtn" onclick="goTitle()">ホームへ</button></div>`;
+
+  if(localStep==='setup'){
+    html += `<h2>1台で回して遊ぶ</h2>`;
+    html += `<p class="subtitle">人数と名前を入れてね。番が来たら画面をその人に渡して数字を確認してもらいます。</p>`;
+    html += `<div class="card">
+      <label class="label">人数</label>
+      <div class="count-stepper">
+        <button onclick="setLocalCount(-1)">−</button>
+        <span class="num">${localCount}</span>
+        <button onclick="setLocalCount(1)">＋</button>
+      </div>
+      <div class="name-rows">`;
+    for(let i=0;i<localCount;i++){
+      html += `<input id="ln-${i}" class="input" maxlength="12" placeholder="プレイヤー${i+1}" value="${esc(localNames[i]||'')}">`;
+    }
+    html += `</div></div>`;
+    html += `<div class="card"><h2 style="font-size:15px;">お題の決め方</h2>`;
+    html += topicModeSelector((local&&local.topicMode)||'presetRandom', 'localSetTopicModeBeforeStart', false, 'localChoosePresetBeforeStart', 'localSaveCustomBeforeStart', 'lct0');
+    html += `</div>`;
+    if(errorMsg) html += `<div class="error">${esc(errorMsg)}</div>`;
+    html += `<button class="btn btn-primary" onclick="startLocalGame()">はじめる</button>`;
+    return html;
+  }
+
+  if(!local) return html;
+
+  if(local.phase==='pass'){
+    const ids=Object.keys(local.players);
+    const id=ids[local.passIdx];
+    const p=local.players[id];
+    html += `<div class="round-pill">ラウンド ${local.round}</div>`;
+    html += `<div class="card" style="text-align:center;padding:34px 18px;">
+      <div style="font-size:15px;color:var(--ink-soft);margin-bottom:10px;">次の番</div>
+      <div style="font-size:23px;font-weight:900;margin-bottom:18px;">${esc(p.name)} さん</div>
+      <p style="font-size:13px;color:var(--ink-soft);">画面をこの人に渡してください。準備ができたらタップ。</p>
+      <button class="btn btn-secondary" style="margin-top:10px;" onclick="localRevealOwnNumber()">自分の数字を見る</button>
+    </div>`;
+    return html;
+  }
+
+  if(local.phase==='pass-show'){
+    const ids=Object.keys(local.players);
+    const id=ids[local.passIdx];
+    const p=local.players[id];
+    html += `<div class="topic-banner"><div class="ttext">${esc(local.topic.text)}</div>
+      <div class="scale"><span>${esc(local.topic.low)}</span><span>${esc(local.topic.high)}</span></div></div>`;
+    html += `<div class="card number-stage"><div class="lab">${esc(p.name)}さんの数字</div>
+      <div class="number-display">${p.number}</div></div>`;
+    html += `<div class="field"><label class="label">ヒントを入力(数字は言わないでね)</label>
+      <textarea id="lc-input" class="input" maxlength="40" placeholder="例: たまに無性に食べたくなる"></textarea></div>`;
+    html += `<button class="btn btn-primary" onclick="localSubmitClue()">決定して次の人へ渡す</button>`;
+    return html;
+  }
+
+  if(local.phase==='retopic'){
+    html += `<h2>次のお題を決める</h2>`;
+    html += `<div class="card">`;
+    html += topicModeSelector(local.topicMode, 'localSetTopicMode', false, 'localChoosePreset', 'localSaveCustomTopic', 'lct');
+    html += `</div>`;
+    if(errorMsg) html += `<div class="error">${esc(errorMsg)}</div>`;
+    if(local.topicMode!=='custom'){
+      html += `<button class="btn btn-primary" onclick="beginLocalRound();render();">このお題で始める</button>`;
+    }
+    return html;
+  }
+
+  if(local.phase==='order' || local.phase==='reveal'){
+    html += renderOrderAndReveal(local.players, local.order, local.topic, local.phase, local.round, local.history, true, {move:'localMoveOrder', reveal:'localReveal', next:'localStartNextRound'});
+    return html;
+  }
+
+  return html;
+}
+
+/* small wrappers so the shared topic selector (used pre-start, where `local` may not exist yet) works */
+function localSetTopicModeBeforeStart(m){
+  if(!local) local={topicMode:m, pendingTopic:null};
+  else { local.topicMode=m; local.pendingTopic=null; }
+  render();
+}
+function localChoosePresetBeforeStart(idx){
+  if(!local) local={topicMode:'presetChoice', pendingTopic:null};
+  local.pendingTopic=PRESET_TOPICS[idx];
+  render();
+}
+function localSaveCustomBeforeStart(){
+  const text=(document.getElementById('lct0-text').value||'').trim().slice(0,28);
+  const low=(document.getElementById('lct0-low').value||'').trim().slice(0,10)||'弱い';
+  const high=(document.getElementById('lct0-high').value||'').trim().slice(0,10)||'強い';
+  if(!text){ errorMsg='お題を入力してください'; render(); return; }
+  if(!local) local={topicMode:'custom', pendingTopic:null};
+  local.pendingTopic={text, low, high};
+  errorMsg='';
+  render();
+}
+
+/* ---------- init ---------- */
+render();
+</script>
+</body>
+</html>
