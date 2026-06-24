@@ -107,7 +107,7 @@
   .topic-chip small{display:block;color:var(--ink-soft);font-size:11px;margin-top:3px;}
   .topic-chip.selected{border-color:var(--thread);background:#fff3ea;font-weight:700;}
   .seg{display:flex;background:rgba(255,255,255,0.08);border-radius:11px;padding:4px;gap:4px;margin-bottom:10px;}
-  .seg button{flex:1;border:none;background:transparent;color:var(--muted);padding:9px 4px;border-radius:8px;font-family:var(--display);font-size:13px;font-weight:700;cursor:pointer;}
+  .seg button{flex:1;border:none;background:transparent;color:var(--muted);padding:8px 2px;border-radius:8px;font-family:var(--display);font-size:11.5px;font-weight:700;cursor:pointer;}
   .seg button.active{background:var(--mustard);color:#2B2440;}
   .player-list{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0 4px;}
   .player-chip{background:rgba(255,255,255,0.09);border-radius:20px;padding:7px 13px;font-size:13px;display:flex;align-items:center;gap:6px;}
@@ -165,6 +165,15 @@
   .count-stepper .num{font-family:var(--mono);font-size:24px;font-weight:700;}
   .name-rows{display:flex;flex-direction:column;gap:8px;margin-top:10px;}
   .copy-row{display:flex;gap:8px;align-items:center;margin-top:10px;}
+  .lang-row{display:flex;gap:8px;margin-bottom:18px;}
+  .lang-row button{flex:1;padding:10px;border-radius:10px;border:1.5px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.05);color:var(--white);font-family:var(--display);font-weight:700;font-size:14px;cursor:pointer;}
+  .lang-row button.active{background:var(--mustard);color:#2B2440;border-color:var(--mustard);}
+  .checkbox-row{display:flex;align-items:flex-start;gap:8px;font-size:13px;color:var(--ink-soft);margin:10px 0 4px;line-height:1.5;}
+  .checkbox-row input{margin-top:3px;flex-shrink:0;}
+  .bank-item{background:var(--card);border:1px solid var(--card-edge);border-radius:12px;padding:12px 14px;margin-bottom:10px;color:var(--ink);}
+  .bank-item .bname{font-family:var(--hand);font-size:17px;}
+  .bank-item .bscale{display:flex;justify-content:space-between;font-size:11px;color:var(--ink-soft);margin-top:4px;}
+  .toast-ok{font-size:13px;color:#bfe8cc;background:rgba(92,156,114,0.18);border:1px solid rgba(92,156,114,0.4);padding:9px 12px;border-radius:10px;margin-bottom:12px;}
   @media (prefers-reduced-motion: no-preference){
     .order-card{animation:settle 0.3s ease;}
   }
@@ -173,9 +182,167 @@
 </head>
 <body>
 <div id="app" class="shell"></div>
-<script>
-/* ---------- data ---------- */
-const PRESET_TOPICS = [
+<script type="module">
+/* ---------- firebase ---------- */
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js";
+import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-auth.js";
+import { getDatabase, ref, get, set, update, onValue, push } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-database.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCPIT5N8g8w_V78UVp73B1JY5_dII3MRC0",
+  authDomain: "ito-line.firebaseapp.com",
+  projectId: "ito-line",
+  storageBucket: "ito-line.firebasestorage.app",
+  messagingSenderId: "458504981320",
+  appId: "1:458504981320:web:331818385c511e4fd6c17d",
+  measurementId: "G-WC0PYY3GRB"
+};
+const fbApp = initializeApp(firebaseConfig);
+const auth = getAuth(fbApp);
+const db = getDatabase(fbApp);
+function roomRef(code){ return ref(db, 'rooms/'+code); }
+function communityRef(l){ return ref(db, 'customTopics/'+l); }
+
+/* ---------- i18n ---------- */
+const STRINGS = {
+  ja: {
+    helpToggleOpen:"遊び方", helpToggleClose:"閉じる",
+    titleHeading:"直感で1本につなぐ<br>協力カードゲーム",
+    titleSubtitle:"お題に対する自分の数字(1〜100)を、数字を言わずにヒントだけで伝えて、みんなで小さい順に並べよう。",
+    helpBoxTitle:"遊び方",
+    helpSteps:[
+      "お題が出る(例:「辛い食べ物」)",
+      "全員に1〜100の数字がひとつずつ配られる(自分しか見えない)",
+      "自分の数字がお題の中でどのくらいか、ヒントの言葉で表現する",
+      "みんなで相談して、ヒントだけを頼りに小さい順に並べる",
+      "並べ終わったら判定。数字の順に並んでいれば成功!"
+    ],
+    btnOnline:"📱 オンラインで遊ぶ(各自のスマホ)",
+    btnLocal:"🔄 1台のデバイスを回して遊ぶ",
+    btnBank:"📚 お題バンクを見る・追加する",
+    footerNote:"カードゲーム「ito」にインスパイアされた非公式のファンメイドアプリです。",
+    onlineHomeHeading:"オンラインで遊ぶ", yourNameLabel:"あなたの名前",
+    namePlaceholderHost:"例: たろう", createRoomBtn:"ルームを作る(ホストになる)", creatingBtn:"作成中…",
+    roomCodeLabel:"ルームコード", codePlaceholder:"ABCD", namePlaceholderGuest:"例: はな",
+    joinRoomBtn:"ルームに参加する", joiningBtn:"参加中…", homeLink:"ホームへ", loadingText:"読み込み中…",
+    err_codeRequired:"ルームコードを入力してください",
+    err_roomNotFound:"そのコードのルームが見つかりません。コードを確認するか、ホストにもう一度確認してもらってください。",
+    err_needTwoPlayers:"2人以上必要です",
+    err_topicTextRequired:"お題を入力してください",
+    err_saveGeneric:"保存できませんでした。通信状況をご確認のうえ、再試行してください。",
+    err_permissionDenied:"データベースへの書き込みが拒否されました。Firebaseのルール設定を確認してください。",
+    err_connFail:"データベースへの接続でエラーが発生しました。通信状況をご確認ください。",
+    err_authFail:"サーバーに接続できませんでした。ページを再読み込みしてください。",
+    retryBtn:"再試行する", reloadBtn:"再読み込み",
+    roomHeadingPrefix:"ルーム", copyCodeBtn:"コードをコピー", copiedText:"コピーしました!",
+    copyFallbackText:"コードをそのまま伝えてね",
+    topicSectionHeading:"お題の決め方",
+    segRandom:"ランダム", segChoice:"選ぶ", segCommunity:"みんな", segCustom:"自分で",
+    moreCandidatesHint:"候補は一部だけ表示しています。ランダムでもOK!",
+    communityEmpty:"まだ投稿がありません。ホーム画面の「お題バンク」から追加してみてね。",
+    communityShuffleBtn:"他の候補を見る",
+    customTextPlaceholder:"例: 部屋にあると落ち着く物",
+    customLowPlaceholder:"低い側(例: 弱い)", customHighPlaceholder:"高い側(例: 強い)",
+    shareToBankLabel:"💡 このお題をみんなのバンクに追加する",
+    saveCustomTopicBtn:"このお題にする", selectedTopicPrefix:"選択中:",
+    startRoundBtn:"ゲーム開始", nextRoundBtn:"次のラウンドを始める",
+    waitingHostTopicText:"ホストがお題を選んでいます。もうすぐ始まります…",
+    yourNumberLabel:"あなたの数字", clueLabel:"ヒントを入力(数字は言わないでね)",
+    cluePlaceholder:"例: たまに無性に食べたくなる", submitClueBtn:"ヒントを送信",
+    waitingOthersText:"送信しました。他の人を待っています…",
+    orderInstructions:"ヒントを見ながら、数字が小さい順(上→下)に並べ替えよう。並べ終わったら「判定する」!",
+    judgeBtn:"判定する", waitingHostJudgeText:"ホストが判定します。みんなで相談して並べてね。",
+    noClueText:"(ヒントなし)",
+    successBannerText:"成功! 糸はつながった 🧵", failBannerText:"失敗… 糸が切れた",
+    connectorOkText:"✓ つながった", connectorBadText:"✕ ここで切れた",
+    playAgainBtn:"もう一度プレイ", waitingNextRoundText:"ホストが次のラウンドを準備しています…",
+    localSetupHeading:"1台で回して遊ぶ",
+    localSetupSubtitle:"人数と名前を入れてね。番が来たら画面をその人に渡して数字を確認してもらいます。",
+    playerCountLabel:"人数", startLocalBtn:"はじめる",
+    nextTurnLabel:"次の番", passInstructions:"画面をこの人に渡してください。準備ができたらタップ。",
+    revealNumberBtn:"自分の数字を見る", decideAndPassBtn:"決定して次の人へ渡す",
+    retopicHeading:"次のお題を決める", thisTopicStartBtn:"このお題で始める",
+    bankHeading:"お題バンク",
+    bankIntro:"みんなで作るお題集。気に入ったら、ゲーム中の「みんな」からも選べます。",
+    bankAddHeading:"新しいお題を追加", bankAddBtn:"バンクに追加する", bankAddedText:"追加しました!",
+    bankEmptyText:"まだ投稿がありません。最初の投稿者になろう!", bankListHeading:"投稿されたお題"
+  },
+  en: {
+    helpToggleOpen:"How to play", helpToggleClose:"Close",
+    titleHeading:"A cooperative guessing game,<br>connected by intuition",
+    titleSubtitle:"You each get a secret number (1–100) for a topic. Describe it with a hint — never the number — then work together to line everyone up in order.",
+    helpBoxTitle:"How to play",
+    helpSteps:[
+      "A topic is revealed (e.g. “Spicy food”)",
+      "Everyone gets a secret number from 1–100 (only you can see yours)",
+      "Describe where your number falls on the topic — using a hint, never the number",
+      "Talk it through as a group and arrange everyone from smallest to largest, using only the hints",
+      "Reveal! If the order matches the numbers, you win"
+    ],
+    btnOnline:"📱 Play online (everyone's own phone)",
+    btnLocal:"🔄 Pass one device around",
+    btnBank:"📚 Browse & add topics",
+    footerNote:"An unofficial fan-made app inspired by the card game “ito.”",
+    onlineHomeHeading:"Play online", yourNameLabel:"Your name",
+    namePlaceholderHost:"e.g. Alex", createRoomBtn:"Create a room (become host)", creatingBtn:"Creating…",
+    roomCodeLabel:"Room code", codePlaceholder:"ABCD", namePlaceholderGuest:"e.g. Sam",
+    joinRoomBtn:"Join a room", joiningBtn:"Joining…", homeLink:"Home", loadingText:"Loading…",
+    err_codeRequired:"Please enter a room code",
+    err_roomNotFound:"No room found with that code. Double-check it, or ask your host to confirm.",
+    err_needTwoPlayers:"You need at least 2 players",
+    err_topicTextRequired:"Please enter a topic",
+    err_saveGeneric:"Couldn't save. Please check your connection and try again.",
+    err_permissionDenied:"The database rejected this write. Please check your Firebase rules.",
+    err_connFail:"Couldn't connect to the database. Please check your connection.",
+    err_authFail:"Couldn't connect to the server. Please reload the page.",
+    retryBtn:"Retry", reloadBtn:"Reload",
+    roomHeadingPrefix:"Room", copyCodeBtn:"Copy code", copiedText:"Copied!",
+    copyFallbackText:"Just tell them the code",
+    topicSectionHeading:"How to pick the topic",
+    segRandom:"Random", segChoice:"Choose", segCommunity:"Community", segCustom:"Custom",
+    moreCandidatesHint:"Showing a few options — random works great too!",
+    communityEmpty:"No submissions yet. Add some from the “Topic bank” on the home screen.",
+    communityShuffleBtn:"Show other options",
+    customTextPlaceholder:"e.g. Things that make a room feel cozy",
+    customLowPlaceholder:"Low end (e.g. Mild)", customHighPlaceholder:"High end (e.g. Intense)",
+    shareToBankLabel:"💡 Add this topic to the community bank",
+    saveCustomTopicBtn:"Use this topic", selectedTopicPrefix:"Selected:",
+    startRoundBtn:"Start game", nextRoundBtn:"Start next round",
+    waitingHostTopicText:"The host is choosing a topic. Starting soon…",
+    yourNumberLabel:"Your number", clueLabel:"Enter a hint (don't say the number!)",
+    cluePlaceholder:"e.g. I crave it out of nowhere sometimes", submitClueBtn:"Submit hint",
+    waitingOthersText:"Sent! Waiting for everyone else…",
+    orderInstructions:"Use the hints to arrange everyone from smallest to largest (top→bottom). Then hit “Reveal”!",
+    judgeBtn:"Reveal", waitingHostJudgeText:"The host will reveal. Talk it through and arrange together.",
+    noClueText:"(no hint)",
+    successBannerText:"Success! The thread holds 🧵", failBannerText:"Not quite… the thread snapped",
+    connectorOkText:"✓ Connected", connectorBadText:"✕ Snapped here",
+    playAgainBtn:"Play again", waitingNextRoundText:"The host is setting up the next round…",
+    localSetupHeading:"Pass one device around",
+    localSetupSubtitle:"Enter how many players and their names. Pass the device to each person when it's their turn.",
+    playerCountLabel:"Number of players", startLocalBtn:"Start",
+    nextTurnLabel:"Up next", passInstructions:"Hand the device to this person. Tap when ready.",
+    revealNumberBtn:"Reveal my number", decideAndPassBtn:"Confirm & pass to next player",
+    retopicHeading:"Choose the next topic", thisTopicStartBtn:"Start with this topic",
+    bankHeading:"Topic bank",
+    bankIntro:"A topic collection built together. Pick these in-game under “Community.”",
+    bankAddHeading:"Add a new topic", bankAddBtn:"Add to bank", bankAddedText:"Added!",
+    bankEmptyText:"No submissions yet. Be the first!", bankListHeading:"Submitted topics"
+  }
+};
+function tl(l,key){ const d=STRINGS[l]||STRINGS.ja; return (key in d) ? d[key] : key; }
+function t(key){ return tl(currentLang(), key); }
+function defaultLow(l){ return l==='en' ? 'Low' : '弱い'; }
+function defaultHigh(l){ return l==='en' ? 'High' : '強い'; }
+function quoteWrap(s){ return currentLang()==='en' ? ('“'+s+'”') : ('「'+s+'」'); }
+function withHonorific(name){ return currentLang()==='en' ? name : (name+' さん'); }
+function numberOfLabel(name){ return currentLang()==='en' ? (name+"'s number") : (name+'さんの数字'); }
+function roundLabel(n){ return currentLang()==='en' ? ('Round '+n) : ('ラウンド '+n); }
+function submittedCountText(c,tt){ return currentLang()==='en' ? (c+'/'+tt+' submitted') : (c+'/'+tt+'人が送信済み'); }
+function playerPlaceholder(i){ return currentLang()==='en' ? ('Player '+i) : ('プレイヤー'+i); }
+
+/* ---------- topic data ---------- */
+const PRESET_TOPICS_JA = [
   {text:"辛い食べ物", low:"全然辛くない", high:"激辛"},
   {text:"高い建物", low:"低い", high:"とても高い"},
   {text:"速い乗り物", low:"のんびり", high:"超スピード"},
@@ -217,120 +384,303 @@ const PRESET_TOPICS = [
   {text:"友達に勧めたい映画の面白さ", low:"普通に良い", high:"人生変わるレベル"},
   {text:"田舎っぽさのある場所", low:"都会的", high:"超ド田舎"},
 ];
+const PRESET_TOPICS_EN = [
+  {text:"Spicy food", low:"Not spicy at all", high:"Mouth on fire"},
+  {text:"Tall buildings", low:"Short", high:"Skyscraper"},
+  {text:"Fast vehicles", low:"Leisurely", high:"Blazing fast"},
+  {text:"Creepy-looking animals", low:"Cute", high:"Nightmare fuel"},
+  {text:"Touristy destinations", low:"Hidden gem", high:"Everyone's been there"},
+  {text:"Expensive-looking things", low:"Cheap", high:"Outrageously pricey"},
+  {text:"Sleepy animals", low:"Barely sleeps", high:"Sleeps all day"},
+  {text:"Hard school subjects", low:"Easy A", high:"Brutal"},
+  {text:"How bad you are at mornings", low:"Early bird", high:"Hopeless"},
+  {text:"How much something blows up on social media", low:"Crickets", high:"Viral"},
+  {text:"Lunchbox items that make your day", low:"Meh", high:"Best day ever"},
+  {text:"How much luggage you pack for a trip", low:"Carry-on only", high:"Three suitcases"},
+  {text:"Things that sting to hear", low:"Don't care", high:"Devastating"},
+  {text:"How much trouble you'd get in with your parents", low:"Light scolding", high:"Grounded forever"},
+  {text:"How glamorous a childhood dream job sounds", low:"Practical", high:"Movie star"},
+  {text:"Karaoke song energy", low:"Slow ballad", high:"Full sprint"},
+  {text:"How fun a rainy day can be", low:"Boring", high:"Best day in"},
+  {text:"Cold places", low:"Mild", high:"Arctic"},
+  {text:"Heavy things", low:"Light", high:"Backbreaking"},
+  {text:"Strong smells", low:"Odorless", high:"Knocks you over"},
+  {text:"Things that make a room feel cozy", low:"Meh", high:"Instantly calming"},
+  {text:"Test questions that make you want to cry", low:"Easy", high:"Tears guaranteed"},
+  {text:"Nerve-wracking situations", low:"Chill", high:"Heart pounding"},
+  {text:"Popular zoo animals", low:"Niche favorite", high:"Always a crowd"},
+  {text:"Luxury items with prices you can't even guess", low:"Roughly knowable", high:"No idea"},
+  {text:"Once-in-a-lifetime experiences", low:"Pretty common", high:"Bucket list"},
+  {text:"How devastating it is to oversleep", low:"No big deal", high:"Day ruined"},
+  {text:"Places that probably get snow", low:"Never", high:"Every winter"},
+  {text:"Places that are awkward to go alone", low:"No problem", high:"So awkward"},
+  {text:"Foods you hated as a kid but love now", low:"Always liked it", high:"Total 180"},
+  {text:"Beautiful views worth a photo", low:"Pretty nice", high:"Breathtaking"},
+  {text:"How much you'd regret a bad souvenir purchase", low:"No regrets", high:"Major regret"},
+  {text:"Game difficulty", low:"Easy mode", high:"Rage quit"},
+  {text:"How likely you are to cry at a wedding", low:"Dry-eyed", high:"Sobbing"},
+  {text:"How scary a ghost story is", low:"Not scary", high:"Can't sleep"},
+  {text:"How panicked you get before a deadline", low:"Totally chill", high:"Full meltdown"},
+];
+function topicsFor(l){ return l==='en' ? PRESET_TOPICS_EN : PRESET_TOPICS_JA; }
 
 /* ---------- utils ---------- */
-function uid(n){n=n||6;const c='abcdefghjkmnpqrstuvwxyz23456789';let s='';for(let i=0;i<n;i++)s+=c[Math.floor(Math.random()*c.length)];return s;}
 function genCode(){const c='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';let s='';for(let i=0;i<4;i++)s+=c[Math.floor(Math.random()*c.length)];return s;}
 function shuffle(arr){const a=arr.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
 function sampleNumbers(n){const pool=Array.from({length:100},(_,i)=>i+1);return shuffle(pool).slice(0,n);}
-function pickRandomTopic(used){used=used||[];let pool=PRESET_TOPICS.filter(t=>!used.includes(t.text));if(pool.length===0)pool=PRESET_TOPICS;return pool[Math.floor(Math.random()*pool.length)];}
+function pickRandomTopic(used,l){used=used||[];let pool=topicsFor(l).filter(t=>!used.includes(t.text));if(pool.length===0)pool=topicsFor(l);return pool[Math.floor(Math.random()*pool.length)];}
 function esc(s){return (s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 
 /* ---------- global state ---------- */
-let mode=null;            // null | 'online' | 'local'
-let onlineStep='home';    // home | create | join
+let mode=null;            // null | 'online' | 'local' | 'bank'
+let onlineStep='home';    // home | room
 let myId=null, myName='';
 let room=null;
-let pollTimer=null, pendingRender=false;
+let pendingRender=false;
 let errorMsg='';
 let showHelp=false;
+let authReady=false;
+let authError=false;
+let lang='ja';             // active language outside of an active room/local game
 
-let local=null;            // {players:{id:{name,number,clue}}, order:[], phase, round, topicMode, pendingTopic, topic, passQueue, passIdx, history}
+let local=null;            // {players, order, phase, round, topicMode, pendingTopic, topic, passIdx, history, lang}
 let localStep='setup';     // setup | playing
 let localCount=4;
 let localNames=['','','',''];
 
-/* ---------- storage helpers ---------- */
-function roomKey(code){return 'room:'+code;}
-async function fetchRoom(code){
-  try{ const r = await window.storage.get(roomKey(code), true); return r ? JSON.parse(r.value) : null; }
-  catch(e){ return null; }
+function currentLang(){
+  if(mode==='online' && room && room.lang) return room.lang;
+  if(mode==='local' && local && local.lang) return local.lang;
+  return lang;
 }
-async function pushRoom(r){
-  r.updatedAt = Date.now();
-  room = r;
+function setLang(l){
+  lang=l;
+  if(mode==='bank') attachBankListener(l);
   render();
-  try{ await window.storage.set(roomKey(r.code), JSON.stringify(r), true); }
-  catch(e){ errorMsg='通信エラーが発生しました。もう一度お試しください。'; render(); }
 }
+
+/* ---------- auth ---------- */
+function initAuth(){
+  onAuthStateChanged(auth, (user)=>{
+    if(user){
+      myId = user.uid;
+      authReady = true;
+      render();
+    } else {
+      signInAnonymously(auth).catch((e)=>{
+        console.error(e);
+        authError = true;
+        render();
+      });
+    }
+  });
+}
+
+/* ---------- realtime sync helpers ---------- */
+let syncError=false;
+let busy=false;
+let lastFailedAction=null;
+let roomUnsub=null;
+
 function isTyping(){const a=document.activeElement;return a && (a.tagName==='INPUT'||a.tagName==='TEXTAREA');}
 document.addEventListener('focusout', ()=>{ if(pendingRender){ pendingRender=false; render(); } });
 
-function startPolling(code){
-  clearInterval(pollTimer);
-  pollTimer=setInterval(async ()=>{
-    if(!room) return;
-    const r = await fetchRoom(code);
-    if(!r) return;
-    if(JSON.stringify(r)!==JSON.stringify(room)){
-      room=r;
-      if(isTyping()) pendingRender=true; else render();
-    }
-  }, 1800);
+function attachRoomListener(code){
+  detachRoomListener();
+  roomUnsub = onValue(roomRef(code), (snap)=>{
+    const val = snap.val();
+    if(!val) return;
+    room = val;
+    if(isTyping()) pendingRender=true; else render();
+  }, (err)=>{
+    console.error(err);
+    syncError = true;
+    errorMsg = t('err_connFail');
+    render();
+  });
 }
-function stopPolling(){ clearInterval(pollTimer); pollTimer=null; }
+function detachRoomListener(){ if(roomUnsub){ roomUnsub(); roomUnsub=null; } }
+
+async function safeWrite(writeFn){
+  try{
+    await writeFn();
+    syncError=false; errorMsg=''; lastFailedAction=null;
+    return true;
+  }catch(e){
+    console.error(e);
+    syncError = true;
+    lastFailedAction = ()=>safeWrite(writeFn);
+    errorMsg = (e && e.code==='PERMISSION_DENIED') ? t('err_permissionDenied') : t('err_saveGeneric');
+    render();
+    return false;
+  }
+}
+function retrySync(){ if(lastFailedAction) lastFailedAction(); }
+
+/* ---------- community topic bank ---------- */
+let communityPickCache={ja:null, en:null};   // one-off cache used while choosing a topic in-game
+let communitySampleCache={ja:[], en:[]};
+let bankList=[];
+let bankUnsub=null;
+let bankJustAdded=false;
+
+async function ensureCommunityPickLoaded(l){
+  if(communityPickCache[l]){ refreshCommunitySample(l); render(); return; }
+  communityPickCache[l]=[];
+  try{
+    const snap = await get(communityRef(l));
+    const val = snap.val()||{};
+    communityPickCache[l] = Object.keys(val).map(id=>({id, ...val[id]}));
+  }catch(e){ console.error(e); communityPickCache[l]=[]; }
+  refreshCommunitySample(l);
+  render();
+}
+function refreshCommunitySample(l){
+  communitySampleCache[l] = shuffle(communityPickCache[l]||[]).slice(0,8);
+}
+function communityShuffle(){ refreshCommunitySample(currentLang()); render(); }
+
+function attachBankListener(l){
+  detachBankListener();
+  bankUnsub = onValue(communityRef(l), (snap)=>{
+    const val = snap.val()||{};
+    bankList = Object.keys(val).map(id=>({id, ...val[id]})).sort((a,b)=>(b.addedAt||0)-(a.addedAt||0));
+    render();
+  }, (err)=>{ console.error(err); });
+}
+function detachBankListener(){ if(bankUnsub){ bankUnsub(); bankUnsub=null; } bankList=[]; }
+
+async function bankAddTopic(){
+  const l=currentLang();
+  const text=(document.getElementById('bank-text').value||'').trim().slice(0,28);
+  const low=(document.getElementById('bank-low').value||'').trim().slice(0,10)||defaultLow(l);
+  const high=(document.getElementById('bank-high').value||'').trim().slice(0,10)||defaultHigh(l);
+  if(!text){ errorMsg=t('err_topicTextRequired'); syncError=false; render(); return; }
+  errorMsg=''; render();
+  const ok = await safeWrite(()=>push(communityRef(l), {text, low, high, addedAt: Date.now()}));
+  if(ok){
+    ['bank-text','bank-low','bank-high'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
+    bankJustAdded=true; render();
+    setTimeout(()=>{ bankJustAdded=false; render(); }, 2200);
+  }
+}
+function goBank(){
+  detachRoomListener();
+  mode='bank';
+  attachBankListener(currentLang());
+  render();
+}
 
 /* ---------- navigation ---------- */
-function goTitle(){ stopPolling(); mode=null; onlineStep='home'; room=null; local=null; errorMsg=''; render(); }
-function goOnlineHome(){ mode='online'; onlineStep='home'; errorMsg=''; render(); }
+function goTitle(){
+  detachRoomListener(); detachBankListener();
+  mode=null; onlineStep='home'; room=null; local=null; errorMsg=''; syncError=false;
+  render();
+}
+function goOnlineHome(){ mode='online'; onlineStep='home'; errorMsg=''; syncError=false; render(); }
 function goLocalSetup(){ mode='local'; localStep='setup'; errorMsg=''; render(); }
 function toggleHelp(){ showHelp=!showHelp; render(); }
 
 /* ---------- online actions ---------- */
 async function createRoomAction(){
-  const name=(document.getElementById('cr-name').value||'').trim().slice(0,12) || 'プレイヤー1';
-  myId='p_'+uid(); myName=name;
-  const code=genCode();
+  if(busy) return;
+  busy=true; errorMsg=''; syncError=false; render();
+  const name=(document.getElementById('cr-name').value||'').trim().slice(0,12) || (lang==='en' ? 'Player 1' : 'プレイヤー1');
+  myName=name;
+  let code='', tries=0, taken=true;
+  try{
+    while(taken && tries<5){
+      code=genCode();
+      const snap=await get(roomRef(code));
+      taken=snap.exists();
+      tries++;
+    }
+  }catch(e){ code=genCode(); }
   const r={
-    code, hostId:myId, phase:'lobby', topicMode:'presetRandom', pendingTopic:null,
+    code, hostId:myId, phase:'lobby', topicMode:'presetRandom', pendingTopic:null, lang:lang,
     players:{ [myId]:{name, number:null, clue:'', submitted:false, joinedAt:Date.now()} },
     order:[], topic:null, round:0, usedTopics:[], lastResult:null, history:[]
   };
-  onlineStep='room';
-  await pushRoom(r);
-  startPolling(code);
+  room=r; onlineStep='room'; render();
+  attachRoomListener(code);
+  await safeWrite(()=>set(roomRef(code), r));
+  busy=false; render();
 }
 async function joinRoomAction(){
+  if(busy) return;
   const codeRaw=(document.getElementById('jr-code').value||'').trim().toUpperCase();
-  const name=(document.getElementById('jr-name').value||'').trim().slice(0,12) || 'ゲスト';
-  if(!codeRaw){ errorMsg='ルームコードを入力してください'; render(); return; }
-  const r = await fetchRoom(codeRaw);
-  if(!r){ errorMsg='そのコードのルームが見つかりません'; render(); return; }
-  myId='p_'+uid(); myName=name;
-  r.players[myId]={name, number:null, clue:'', submitted:false, joinedAt:Date.now()};
-  onlineStep='room';
-  errorMsg='';
-  await pushRoom(r);
-  startPolling(codeRaw);
+  const name=(document.getElementById('jr-name').value||'').trim().slice(0,12) || (lang==='en'?'Guest':'ゲスト');
+  if(!codeRaw){ errorMsg=t('err_codeRequired'); syncError=false; render(); return; }
+  busy=true; errorMsg=''; syncError=false; render();
+  let snap=null;
+  try{ snap = await get(roomRef(codeRaw)); }catch(e){ console.error(e); }
+  if(!snap || !snap.exists()){
+    errorMsg=t('err_roomNotFound');
+    syncError=false; busy=false; render(); return;
+  }
+  const r = snap.val();
+  myName=name;
+  r.players = r.players || {};
+  r.players[myId] = {name, number:null, clue:'', submitted:false, joinedAt:Date.now()};
+  room=r; onlineStep='room'; render();
+  attachRoomListener(codeRaw);
+  await safeWrite(()=>update(roomRef(codeRaw), {['players/'+myId]: r.players[myId]}));
+  busy=false; render();
 }
 function isHost(){ return room && room.hostId===myId; }
 
-function hostSetTopicMode(m){ if(!isHost())return; room.topicMode=m; room.pendingTopic=null; pushRoom(room); }
-function hostChoosePreset(idx){ if(!isHost())return; room.pendingTopic = PRESET_TOPICS[idx]; pushRoom(room); }
+function hostSetTopicMode(m){
+  if(!isHost())return;
+  room.topicMode=m; room.pendingTopic=null; render();
+  if(m==='community') ensureCommunityPickLoaded(currentLang());
+  safeWrite(()=>update(roomRef(room.code), {topicMode:m, pendingTopic:null}));
+}
+function hostChoosePreset(idx){
+  if(!isHost())return;
+  const tp = topicsFor(currentLang())[idx];
+  room.pendingTopic=tp; render();
+  safeWrite(()=>update(roomRef(room.code), {pendingTopic:tp}));
+}
+function hostChooseCommunity(idx){
+  if(!isHost())return;
+  const c=(communitySampleCache[currentLang()]||[])[idx];
+  if(!c) return;
+  const tp={text:c.text, low:c.low, high:c.high};
+  room.pendingTopic=tp; render();
+  safeWrite(()=>update(roomRef(room.code), {pendingTopic:tp}));
+}
 function hostSaveCustomTopic(){
   if(!isHost())return;
+  const l=currentLang();
   const text=(document.getElementById('ct-text').value||'').trim().slice(0,28);
-  const low=(document.getElementById('ct-low').value||'').trim().slice(0,10)||'弱い';
-  const high=(document.getElementById('ct-high').value||'').trim().slice(0,10)||'強い';
-  if(!text){ errorMsg='お題を入力してください'; render(); return; }
+  const low=(document.getElementById('ct-low').value||'').trim().slice(0,10)||defaultLow(l);
+  const high=(document.getElementById('ct-high').value||'').trim().slice(0,10)||defaultHigh(l);
+  const share=!!(document.getElementById('ct-share')||{}).checked;
+  if(!text){ errorMsg=t('err_topicTextRequired'); syncError=false; render(); return; }
   room.pendingTopic={text, low, high};
-  errorMsg='';
-  pushRoom(room);
+  errorMsg=''; render();
+  safeWrite(()=>update(roomRef(room.code), {pendingTopic:room.pendingTopic}));
+  if(share) safeWrite(()=>push(communityRef(l), {text, low, high, addedAt:Date.now()}));
 }
 function hostStartRound(){
   if(!isHost())return;
+  const l=currentLang();
   const ids=Object.keys(room.players);
-  if(ids.length<2){ errorMsg='2人以上必要です'; render(); return; }
+  if(ids.length<2){ errorMsg=t('err_needTwoPlayers'); syncError=false; render(); return; }
   let topic=room.pendingTopic;
   if(room.topicMode==='presetRandom' || !topic){
-    topic=pickRandomTopic(room.usedTopics);
+    topic=pickRandomTopic(room.usedTopics, l);
     room.usedTopics=(room.usedTopics||[]).concat([topic.text]);
   }
   const nums=sampleNumbers(ids.length);
+  const updates={};
   shuffle(ids).forEach((id,i)=>{
     room.players[id].number=nums[i];
     room.players[id].clue='';
     room.players[id].submitted=false;
+    updates['players/'+id+'/number']=nums[i];
+    updates['players/'+id+'/clue']='';
+    updates['players/'+id+'/submitted']=false;
   });
   room.topic=topic;
   room.pendingTopic=null;
@@ -338,24 +688,29 @@ function hostStartRound(){
   room.round=(room.round||0)+1;
   room.order=shuffle(ids);
   room.lastResult=null;
-  errorMsg='';
-  pushRoom(room);
+  Object.assign(updates, {topic, pendingTopic:null, phase:'clue', round:room.round, order:room.order, lastResult:null, usedTopics:room.usedTopics});
+  errorMsg=''; render();
+  safeWrite(()=>update(roomRef(room.code), updates));
 }
 function submitClueAction(){
   const text=(document.getElementById('clue-input').value||'').trim().slice(0,40);
   room.players[myId].clue=text;
   room.players[myId].submitted=true;
   const all=Object.values(room.players).every(p=>p.submitted);
-  if(all) room.phase='order';
-  pushRoom(room);
+  const updates={};
+  updates['players/'+myId+'/clue']=text;
+  updates['players/'+myId+'/submitted']=true;
+  if(all){ room.phase='order'; updates.phase='order'; }
+  render();
+  safeWrite(()=>update(roomRef(room.code), updates));
 }
 function moveOrder(idx,dir){
   const o=room.order.slice();
   const j=idx+dir;
   if(j<0||j>=o.length)return;
   [o[idx],o[j]]=[o[j],o[idx]];
-  room.order=o;
-  pushRoom(room);
+  room.order=o; render();
+  safeWrite(()=>update(roomRef(room.code), {order:o}));
 }
 function hostReveal(){
   if(!isHost())return;
@@ -367,20 +722,21 @@ function hostReveal(){
   room.phase='reveal';
   room.lastResult={success};
   room.history=(room.history||[]).concat([success]);
-  pushRoom(room);
+  render();
+  safeWrite(()=>update(roomRef(room.code), {phase:'reveal', lastResult:{success}, history:room.history}));
 }
 function hostNextRound(){
   if(!isHost())return;
   room.phase='lobby';
-  room.lastResult=null;
-  pushRoom(room);
+  room.lastResult=null; render();
+  safeWrite(()=>update(roomRef(room.code), {phase:'lobby', lastResult:null}));
 }
 function copyCode(){
   const code=room.code;
   if(navigator.clipboard && navigator.clipboard.writeText){
     navigator.clipboard.writeText(code).then(()=>{
-      const el=document.getElementById('copy-status'); if(el) el.textContent='コピーしました!';
-    }).catch(()=>{ const el=document.getElementById('copy-status'); if(el) el.textContent='コードをそのまま伝えてね'; });
+      const el=document.getElementById('copy-status'); if(el) el.textContent=t('copiedText');
+    }).catch(()=>{ const el=document.getElementById('copy-status'); if(el) el.textContent=t('copyFallbackText'); });
   }
 }
 
@@ -394,23 +750,26 @@ function setLocalCount(delta){
 function startLocalGame(){
   const players={};
   for(let i=0;i<localCount;i++){
-    const nm=(document.getElementById('ln-'+i).value||'').trim().slice(0,12) || ('プレイヤー'+(i+1));
+    const nm=(document.getElementById('ln-'+i).value||'').trim().slice(0,12) || playerPlaceholder(i+1);
     players[String(i)]={name:nm, number:null, clue:''};
   }
-  const topicMode=local && local.topicMode ? local.topicMode : 'presetRandom';
+  const topicMode = local && local.topicMode ? local.topicMode : 'presetRandom';
+  const pendingTopic = local ? local.pendingTopic : null;
+  const gameLang = lang;
   local={
-    players, topicMode, pendingTopic:null, topic:null,
-    phase:'pass', round:0, order:[], passIdx:0, usedTopics:[], history:[]
+    players, topicMode, pendingTopic, topic:null,
+    phase:'pass', round:0, order:[], passIdx:0, usedTopics:[], history:[], lang:gameLang
   };
   beginLocalRound();
   localStep='playing';
   render();
 }
 function beginLocalRound(){
+  const l=currentLang();
   const ids=Object.keys(local.players);
   let topic=local.pendingTopic;
   if(local.topicMode==='presetRandom' || !topic){
-    topic=pickRandomTopic(local.usedTopics);
+    topic=pickRandomTopic(local.usedTopics, l);
     local.usedTopics=(local.usedTopics||[]).concat([topic.text]);
   }
   const nums=sampleNumbers(ids.length);
@@ -429,8 +788,7 @@ function localSubmitClue(){
   const text=(document.getElementById('lc-input').value||'').trim().slice(0,40);
   local.players[id].clue=text;
   local.passIdx++;
-  if(local.passIdx>=ids.length){ local.phase='order'; }
-  else { local.phase='pass'; }
+  local.phase = (local.passIdx>=ids.length) ? 'order' : 'pass';
   render();
 }
 function localMoveOrder(idx,dir){
@@ -453,15 +811,28 @@ function localReveal(){
   render();
 }
 function localGoTopicPick(){ local.phase='retopic'; render(); }
-function localSetTopicMode(m){ local.topicMode=m; local.pendingTopic=null; render(); }
-function localChoosePreset(idx){ local.pendingTopic=PRESET_TOPICS[idx]; render(); }
+function localSetTopicMode(m){
+  local.topicMode=m; local.pendingTopic=null;
+  if(m==='community') ensureCommunityPickLoaded(currentLang());
+  render();
+}
+function localChoosePreset(idx){ local.pendingTopic=topicsFor(currentLang())[idx]; render(); }
+function localChooseCommunity(idx){
+  const c=(communitySampleCache[currentLang()]||[])[idx];
+  if(!c) return;
+  local.pendingTopic={text:c.text, low:c.low, high:c.high};
+  render();
+}
 function localSaveCustomTopic(){
+  const l=currentLang();
   const text=(document.getElementById('lct-text').value||'').trim().slice(0,28);
-  const low=(document.getElementById('lct-low').value||'').trim().slice(0,10)||'弱い';
-  const high=(document.getElementById('lct-high').value||'').trim().slice(0,10)||'強い';
-  if(!text){ errorMsg='お題を入力してください'; render(); return; }
+  const low=(document.getElementById('lct-low').value||'').trim().slice(0,10)||defaultLow(l);
+  const high=(document.getElementById('lct-high').value||'').trim().slice(0,10)||defaultHigh(l);
+  const share=!!(document.getElementById('lct-share')||{}).checked;
+  if(!text){ errorMsg=t('err_topicTextRequired'); render(); return; }
   local.pendingTopic={text, low, high};
   errorMsg='';
+  if(share) safeWrite(()=>push(communityRef(l), {text, low, high, addedAt:Date.now()}));
   beginLocalRound();
   render();
 }
@@ -470,28 +841,74 @@ function localStartNextRound(){
   else { localGoTopicPick(); }
 }
 
+/* small wrappers so the shared topic selector (used pre-start, where `local` may not exist yet) works */
+function localSetTopicModeBeforeStart(m){
+  if(!local) local={topicMode:m, pendingTopic:null};
+  else { local.topicMode=m; local.pendingTopic=null; }
+  if(m==='community') ensureCommunityPickLoaded(currentLang());
+  render();
+}
+function localChoosePresetBeforeStart(idx){
+  if(!local) local={topicMode:'presetChoice', pendingTopic:null};
+  local.pendingTopic=topicsFor(currentLang())[idx];
+  render();
+}
+function localChooseCommunityBeforeStart(idx){
+  if(!local) local={topicMode:'community', pendingTopic:null};
+  const c=(communitySampleCache[currentLang()]||[])[idx];
+  if(!c) return;
+  local.pendingTopic={text:c.text, low:c.low, high:c.high};
+  render();
+}
+function localSaveCustomBeforeStart(){
+  const l=currentLang();
+  const text=(document.getElementById('lct0-text').value||'').trim().slice(0,28);
+  const low=(document.getElementById('lct0-low').value||'').trim().slice(0,10)||defaultLow(l);
+  const high=(document.getElementById('lct0-high').value||'').trim().slice(0,10)||defaultHigh(l);
+  const share=!!(document.getElementById('lct0-share')||{}).checked;
+  if(!text){ errorMsg=t('err_topicTextRequired'); render(); return; }
+  if(!local) local={topicMode:'custom', pendingTopic:null};
+  local.pendingTopic={text, low, high};
+  errorMsg='';
+  if(share) safeWrite(()=>push(communityRef(l), {text, low, high, addedAt:Date.now()}));
+  render();
+}
+
 /* ---------- shared render pieces ---------- */
-function topicModeSelector(current, onModeFn, presetGridVisible, onPickPreset, onSaveCustom, idPrefix){
+function topicModeSelector(cfg){
+  const l=cfg.lang;
   let html = `<div class="seg">
-    <button class="${current==='presetRandom'?'active':''}" onclick="${onModeFn}('presetRandom')">ランダム</button>
-    <button class="${current==='presetChoice'?'active':''}" onclick="${onModeFn}('presetChoice')">選ぶ</button>
-    <button class="${current==='custom'?'active':''}" onclick="${onModeFn}('custom')">自分で作る</button>
+    <button class="${cfg.mode==='presetRandom'?'active':''}" onclick="${cfg.onMode}('presetRandom')">${tl(l,'segRandom')}</button>
+    <button class="${cfg.mode==='presetChoice'?'active':''}" onclick="${cfg.onMode}('presetChoice')">${tl(l,'segChoice')}</button>
+    <button class="${cfg.mode==='community'?'active':''}" onclick="${cfg.onMode}('community')">${tl(l,'segCommunity')}</button>
+    <button class="${cfg.mode==='custom'?'active':''}" onclick="${cfg.onMode}('custom')">${tl(l,'segCustom')}</button>
   </div>`;
-  if(current==='presetChoice'){
-    html += `<div class="topic-chip-grid">`;
-    PRESET_TOPICS.slice(0,8).forEach((t,i)=>{
-      html += `<button class="topic-chip" onclick="${onPickPreset}(${i})">${esc(t.text)}<small>${esc(t.low)} → ${esc(t.high)}</small></button>`;
-    });
-    html += `</div><div class="helper">候補は一部だけ表示しています。ランダムでもOK!</div>`;
+  if(cfg.mode==='presetChoice'){
+    const list=topicsFor(l).slice(0,8);
+    html += `<div class="topic-chip-grid">` + list.map((tp,i)=>`<button class="topic-chip" onclick="${cfg.onPickPreset}(${i})">${esc(tp.text)}<small>${esc(tp.low)} → ${esc(tp.high)}</small></button>`).join('') + `</div>`;
+    html += `<div class="helper">${tl(l,'moreCandidatesHint')}</div>`;
   }
-  if(current==='custom'){
-    html += `<div class="field"><input id="${idPrefix}-text" class="input" maxlength="28" placeholder="例: 部屋にあると落ち着く物"></div>
+  if(cfg.mode==='community'){
+    const loaded = !!communityPickCache[l];
+    const sample = communitySampleCache[l]||[];
+    if(!loaded){
+      html += `<p class="helper">${tl(l,'loadingText')}</p>`;
+    } else if(sample.length===0){
+      html += `<p class="helper">${tl(l,'communityEmpty')}</p>`;
+    } else {
+      html += `<div class="topic-chip-grid">` + sample.map((tp,i)=>`<button class="topic-chip" onclick="${cfg.onPickCommunity}(${i})">${esc(tp.text)}<small>${esc(tp.low)} → ${esc(tp.high)}</small></button>`).join('') + `</div>`;
+      html += `<button class="btn btn-ghost btn-sm" style="margin-top:8px;" onclick="communityShuffle()">${tl(l,'communityShuffleBtn')}</button>`;
+    }
+  }
+  if(cfg.mode==='custom'){
+    html += `<div class="field"><input id="${cfg.idPrefix}-text" class="input" maxlength="28" placeholder="${tl(l,'customTextPlaceholder')}"></div>
     <div class="btn-row">
-      <input id="${idPrefix}-low" class="input" maxlength="10" placeholder="低い側(例: 弱い)">
-      <input id="${idPrefix}-high" class="input" maxlength="10" placeholder="高い側(例: 強い)">
+      <input id="${cfg.idPrefix}-low" class="input" maxlength="10" placeholder="${tl(l,'customLowPlaceholder')}">
+      <input id="${cfg.idPrefix}-high" class="input" maxlength="10" placeholder="${tl(l,'customHighPlaceholder')}">
     </div>
-    <div style="height:10px;"></div>
-    <button class="btn btn-secondary" onclick="${onSaveCustom}()">このお題にする</button>`;
+    <label class="checkbox-row"><input type="checkbox" id="${cfg.idPrefix}-share">${tl(l,'shareToBankLabel')}</label>
+    <div style="height:6px;"></div>
+    <button class="btn btn-secondary" onclick="${cfg.onSaveCustom}()">${tl(l,'saveCustomTopicBtn')}</button>`;
   }
   return html;
 }
@@ -502,23 +919,33 @@ function renderHistoryDots(history){
   history.forEach(h=>{ html += `<span style="background:${h?'var(--good)':'var(--bad)'}"></span>`; });
   return html + `</div>`;
 }
+function renderErrorBanner(){
+  if(!errorMsg) return '';
+  if(syncError){
+    return `<div class="error">${esc(errorMsg)}
+      <div style="margin-top:8px;"><button class="btn btn-secondary btn-sm" onclick="retrySync()">${t('retryBtn')}</button></div>
+    </div>`;
+  }
+  return `<div class="error">${esc(errorMsg)}</div>`;
+}
 
 function renderOrderAndReveal(playersObj, order, topic, phase, round, history, hostAllowed, cb){
   let html='';
   html += renderHistoryDots(history);
-  html += `<div class="round-pill">ラウンド ${round}</div>`;
+  html += `<div class="round-pill">${roundLabel(round)}</div>`;
   html += `<div class="topic-banner"><div class="ttext">${esc(topic.text)}</div>
     <div class="scale"><span>${esc(topic.low)}</span><span>${esc(topic.high)}</span></div></div>`;
+  html += renderErrorBanner();
 
   if(phase==='order'){
-    html += `<p class="subtitle">ヒントを見ながら、数字が小さい順(上→下)に並べ替えよう。並べ終わったら「判定する」!</p>`;
+    html += `<p class="subtitle">${t('orderInstructions')}</p>`;
     html += `<div class="thread-wrap">`;
     order.forEach((id,idx)=>{
       const p=playersObj[id];
       html += `<div class="order-card"><div class="oc-row">
         <div style="flex:1;">
           <div class="ocname"><span>${esc(p.name)}</span></div>
-          <div class="occlue">${p.clue ? esc(p.clue) : '<span style=\"color:#a89; font-size:14px;\">(ヒントなし)</span>'}</div>
+          <div class="occlue">${p.clue ? esc(p.clue) : '<span style=\"color:#a89; font-size:14px;\">'+t('noClueText')+'</span>'}</div>
         </div>
         <div class="order-controls">
           <button onclick="${cb.move}(${idx},-1)" ${idx===0?'disabled':''}>▲</button>
@@ -528,13 +955,13 @@ function renderOrderAndReveal(playersObj, order, topic, phase, round, history, h
     });
     html += `</div>`;
     if(hostAllowed){
-      html += `<button class="btn btn-primary" onclick="${cb.reveal}()">判定する</button>`;
+      html += `<button class="btn btn-primary" onclick="${cb.reveal}()">${t('judgeBtn')}</button>`;
     } else {
-      html += `<div class="helper">ホストが判定します。みんなで相談して並べてね。</div>`;
+      html += `<div class="helper">${t('waitingHostJudgeText')}</div>`;
     }
   } else if(phase==='reveal'){
     const success = order.every((id,idx)=> idx===order.length-1 || playersObj[id].number < playersObj[order[idx+1]].number);
-    html += `<div class="result-banner ${success?'success':'fail'}"><div class="big">${success?'成功! 糸はつながった 🧵':'失敗… 糸が切れた'}</div></div>`;
+    html += `<div class="result-banner ${success?'success':'fail'}"><div class="big">${success?t('successBannerText'):t('failBannerText')}</div></div>`;
     html += `<div class="thread-wrap">`;
     order.forEach((id,idx)=>{
       const p=playersObj[id];
@@ -544,14 +971,14 @@ function renderOrderAndReveal(playersObj, order, topic, phase, round, history, h
       </div></div></div>`;
       if(idx<order.length-1){
         const ok = p.number < playersObj[order[idx+1]].number;
-        html += `<div class="connector ${ok?'ok':'bad'}">${ok?'✓ つながった':'✕ ここで切れた'}</div>`;
+        html += `<div class="connector ${ok?'ok':'bad'}">${ok?t('connectorOkText'):t('connectorBadText')}</div>`;
       }
     });
     html += `</div>`;
     if(hostAllowed){
-      html += `<button class="btn btn-primary" onclick="${cb.next}()">もう一度プレイ</button>`;
+      html += `<button class="btn btn-primary" onclick="${cb.next}()">${t('playAgainBtn')}</button>`;
     } else {
-      html += `<div class="helper">ホストが次のラウンドを準備しています…</div>`;
+      html += `<div class="helper">${t('waitingNextRoundText')}</div>`;
     }
   }
   return html;
@@ -560,78 +987,126 @@ function renderOrderAndReveal(playersObj, order, topic, phase, round, history, h
 /* ---------- top-level render ---------- */
 function render(){
   const app=document.getElementById('app');
+  document.documentElement.lang = currentLang();
+  if(authError){ app.innerHTML=renderAuthErrorScreen(); return; }
+  if(!authReady){ app.innerHTML=renderAuthLoading(); return; }
   let html='';
   if(mode===null) html=renderTitleScreen();
   else if(mode==='online') html=renderOnlineMode();
   else if(mode==='local') html=renderLocalMode();
+  else if(mode==='bank') html=renderBankMode();
   app.innerHTML = html;
+}
+function renderAuthLoading(){
+  return `<div class="topbar"><div class="brand"><span class="thread-dot"></span>ito-line</div></div>
+    <p class="subtitle">${tl(lang,'loadingText')}</p>`;
+}
+function renderAuthErrorScreen(){
+  return `<div class="topbar"><div class="brand"><span class="thread-dot"></span>ito-line</div></div>
+    <div class="error">${tl(lang,'err_authFail')}</div>
+    <button class="btn btn-primary" onclick="location.reload()">${tl(lang,'reloadBtn')}</button>`;
 }
 
 function renderTitleScreen(){
   let html = `<div class="topbar"><div class="brand"><span class="thread-dot"></span>ito-line</div>
-    <button class="linkbtn" onclick="toggleHelp()">${showHelp?'閉じる':'遊び方'}</button></div>`;
-  html += `<h1>直感で1本につなぐ<br>協力カードゲーム</h1>`;
-  html += `<p class="subtitle">お題に対する自分の数字(1〜100)を、数字を言わずにヒントだけで伝えて、みんなで小さい順に並べよう。</p>`;
+    <button class="linkbtn" onclick="toggleHelp()">${showHelp?t('helpToggleClose'):t('helpToggleOpen')}</button></div>`;
+  html += `<div class="lang-row">
+    <button class="${lang==='ja'?'active':''}" onclick="setLang('ja')">日本語</button>
+    <button class="${lang==='en'?'active':''}" onclick="setLang('en')">English</button>
+  </div>`;
+  html += `<h1>${t('titleHeading')}</h1>`;
+  html += `<p class="subtitle">${t('titleSubtitle')}</p>`;
   if(showHelp){
-    html += `<div class="help-box"><b>遊び方</b><ol>
-      <li>お題が出る(例:「辛い食べ物」)</li>
-      <li>全員に1〜100の数字がひとつずつ配られる(自分しか見えない)</li>
-      <li>自分の数字がお題の中でどのくらいか、ヒントの言葉で表現する</li>
-      <li>みんなで相談して、ヒントだけを頼りに小さい順に並べる</li>
-      <li>並べ終わったら判定。数字の順に並んでいれば成功!</li>
-    </ol></div>`;
+    html += `<div class="help-box"><b>${t('helpBoxTitle')}</b><ol>` +
+      STRINGS[currentLang()].helpSteps.map(s=>`<li>${esc(s)}</li>`).join('') +
+      `</ol></div>`;
   }
   if(errorMsg) html += `<div class="error">${esc(errorMsg)}</div>`;
   html += `<div class="stack">
-    <button class="btn btn-primary" onclick="goOnlineHome()">📱 オンラインで遊ぶ(各自のスマホ)</button>
-    <button class="btn btn-secondary" onclick="goLocalSetup()">🔄 1台のデバイスを回して遊ぶ</button>
+    <button class="btn btn-primary" onclick="goOnlineHome()">${t('btnOnline')}</button>
+    <button class="btn btn-secondary" onclick="goLocalSetup()">${t('btnLocal')}</button>
+    <button class="btn btn-ghost" onclick="goBank()">${t('btnBank')}</button>
   </div>`;
-  html += `<footer class="note">カードゲーム「ito」にインスパイアされた非公式のファンメイドアプリです。</footer>`;
+  html += `<footer class="note">${t('footerNote')}</footer>`;
+  return html;
+}
+
+function renderBankMode(){
+  const l=currentLang();
+  let html = `<div class="topbar"><div class="brand"><span class="thread-dot"></span>ito-line</div>
+    <button class="linkbtn" onclick="goTitle()">${t('homeLink')}</button></div>`;
+  html += `<div class="lang-row">
+    <button class="${l==='ja'?'active':''}" onclick="setLang('ja')">日本語</button>
+    <button class="${l==='en'?'active':''}" onclick="setLang('en')">English</button>
+  </div>`;
+  html += `<h2>${t('bankHeading')}</h2>`;
+  html += `<p class="subtitle">${t('bankIntro')}</p>`;
+  html += `<div class="card">
+    <h2 style="font-size:15px;">${t('bankAddHeading')}</h2>
+    ${renderErrorBanner()}
+    ${bankJustAdded?'<div class="toast-ok">'+t('bankAddedText')+'</div>':''}
+    <div class="field"><input id="bank-text" class="input" maxlength="28" placeholder="${t('customTextPlaceholder')}"></div>
+    <div class="btn-row">
+      <input id="bank-low" class="input" maxlength="10" placeholder="${t('customLowPlaceholder')}">
+      <input id="bank-high" class="input" maxlength="10" placeholder="${t('customHighPlaceholder')}">
+    </div>
+    <div style="height:10px;"></div>
+    <button class="btn btn-primary" onclick="bankAddTopic()">${t('bankAddBtn')}</button>
+  </div>`;
+  html += `<h2 style="font-size:15px;margin-top:18px;">${t('bankListHeading')}</h2>`;
+  if(bankList.length===0){
+    html += `<p class="subtitle">${t('bankEmptyText')}</p>`;
+  } else {
+    bankList.forEach(tp=>{
+      html += `<div class="bank-item"><div class="bname">${esc(tp.text)}</div>
+        <div class="bscale"><span>${esc(tp.low)}</span><span>${esc(tp.high)}</span></div></div>`;
+    });
+  }
   return html;
 }
 
 function renderOnlineMode(){
   let html = `<div class="topbar"><div class="brand"><span class="thread-dot"></span>ito-line</div>
-    <button class="linkbtn" onclick="goTitle()">ホームへ</button></div>`;
+    <button class="linkbtn" onclick="goTitle()">${t('homeLink')}</button></div>`;
 
   if(onlineStep==='home'){
-    html += `<h2>オンラインで遊ぶ</h2>`;
-    if(errorMsg) html += `<div class="error">${esc(errorMsg)}</div>`;
+    html += `<h2>${t('onlineHomeHeading')}</h2>`;
+    html += renderErrorBanner();
     html += `<div class="card">
-      <div class="field"><label class="label">あなたの名前</label><input id="cr-name" class="input" maxlength="12" placeholder="例: たろう"></div>
-      <button class="btn btn-primary" onclick="createRoomAction()">ルームを作る(ホストになる)</button>
+      <div class="field"><label class="label">${t('yourNameLabel')}</label><input id="cr-name" class="input" maxlength="12" placeholder="${t('namePlaceholderHost')}" ${busy?'disabled':''}></div>
+      <button class="btn btn-primary" onclick="createRoomAction()" ${busy?'disabled':''}>${busy?t('creatingBtn'):t('createRoomBtn')}</button>
     </div>
     <div class="card">
-      <div class="field"><label class="label">ルームコード</label><input id="jr-code" class="input mono" maxlength="4" placeholder="ABCD"></div>
-      <div class="field"><label class="label">あなたの名前</label><input id="jr-name" class="input" maxlength="12" placeholder="例: はな"></div>
-      <button class="btn btn-secondary" onclick="joinRoomAction()">ルームに参加する</button>
+      <div class="field"><label class="label">${t('roomCodeLabel')}</label><input id="jr-code" class="input mono" maxlength="4" placeholder="${t('codePlaceholder')}" ${busy?'disabled':''}></div>
+      <div class="field"><label class="label">${t('yourNameLabel')}</label><input id="jr-name" class="input" maxlength="12" placeholder="${t('namePlaceholderGuest')}" ${busy?'disabled':''}></div>
+      <button class="btn btn-secondary" onclick="joinRoomAction()" ${busy?'disabled':''}>${busy?t('joiningBtn'):t('joinRoomBtn')}</button>
     </div>`;
     return html;
   }
 
-  if(!room){ return html + `<p class="subtitle">読み込み中…</p>`; }
+  if(!room){ return html + `<p class="subtitle">${t('loadingText')}</p>`; }
+  const l=currentLang();
 
-  // room.phase based rendering
   if(room.phase==='lobby'){
-    html += `<h2>ルーム ${room.code}</h2>`;
-    if(errorMsg) html += `<div class="error">${esc(errorMsg)}</div>`;
+    html += `<h2>${t('roomHeadingPrefix')} ${room.code}</h2>`;
+    html += renderErrorBanner();
     html += `<div class="room-code">${room.code}</div>
-      <div class="copy-row"><button class="btn btn-ghost btn-sm" onclick="copyCode()">コードをコピー</button><span id="copy-status" class="helper"></span></div>`;
+      <div class="copy-row"><button class="btn btn-ghost btn-sm" onclick="copyCode()">${t('copyCodeBtn')}</button><span id="copy-status" class="helper"></span></div>`;
     html += `<div class="player-list">`;
     Object.values(room.players).forEach(p=>{
       html += `<div class="player-chip">${p===room.players[room.hostId]?'<span class=\"host-star\">★</span>':''}${esc(p.name)}</div>`;
     });
     html += `</div>`;
     if(isHost()){
-      html += `<div class="card"><h2 style="font-size:15px;">お題の決め方</h2>`;
-      html += topicModeSelector(room.topicMode, 'hostSetTopicMode', true, 'hostChoosePreset', 'hostSaveCustomTopic', 'ct');
+      html += `<div class="card"><h2 style="font-size:15px;">${t('topicSectionHeading')}</h2>`;
+      html += topicModeSelector({mode:room.topicMode, lang:l, onMode:'hostSetTopicMode', onPickPreset:'hostChoosePreset', onPickCommunity:'hostChooseCommunity', onSaveCustom:'hostSaveCustomTopic', idPrefix:'ct'});
       if(room.pendingTopic){
-        html += `<div class="helper">選択中: 「${esc(room.pendingTopic.text)}」</div>`;
+        html += `<div class="helper">${t('selectedTopicPrefix')} ${quoteWrap(esc(room.pendingTopic.text))}</div>`;
       }
       html += `</div>`;
-      html += `<button class="btn btn-primary" onclick="hostStartRound()">${room.round>0?'次のラウンドを始める':'ゲーム開始'}</button>`;
+      html += `<button class="btn btn-primary" onclick="hostStartRound()">${room.round>0?t('nextRoundBtn'):t('startRoundBtn')}</button>`;
     } else {
-      html += `<p class="subtitle">ホストがお題を選んでいます。もうすぐ始まります…</p>`;
+      html += `<p class="subtitle">${t('waitingHostTopicText')}</p>`;
     }
     return html;
   }
@@ -639,20 +1114,21 @@ function renderOnlineMode(){
   if(room.phase==='clue'){
     const me=room.players[myId];
     html += renderHistoryDots(room.history);
-    html += `<div class="round-pill">ラウンド ${room.round}</div>`;
+    html += `<div class="round-pill">${roundLabel(room.round)}</div>`;
     html += `<div class="topic-banner"><div class="ttext">${esc(room.topic.text)}</div>
       <div class="scale"><span>${esc(room.topic.low)}</span><span>${esc(room.topic.high)}</span></div></div>`;
-    html += `<div class="card number-stage"><div class="lab">あなたの数字</div>
+    html += `<div class="card number-stage"><div class="lab">${t('yourNumberLabel')}</div>
       <div class="number-display">${me.number}</div></div>`;
+    html += renderErrorBanner();
     if(!me.submitted){
-      html += `<div class="field"><label class="label">ヒントを入力(数字は言わないでね)</label>
-        <textarea id="clue-input" class="input" maxlength="40" placeholder="例: たまに無性に食べたくなる"></textarea></div>`;
-      html += `<button class="btn btn-primary" onclick="submitClueAction()">ヒントを送信</button>`;
+      html += `<div class="field"><label class="label">${t('clueLabel')}</label>
+        <textarea id="clue-input" class="input" maxlength="40" placeholder="${t('cluePlaceholder')}"></textarea></div>`;
+      html += `<button class="btn btn-primary" onclick="submitClueAction()">${t('submitClueBtn')}</button>`;
     } else {
-      html += `<p class="subtitle">送信しました。他の人を待っています…</p>`;
+      html += `<p class="subtitle">${t('waitingOthersText')}</p>`;
     }
     const submittedCount = Object.values(room.players).filter(p=>p.submitted).length;
-    html += `<div class="helper">${submittedCount}/${Object.keys(room.players).length}人が送信済み</div>`;
+    html += `<div class="helper">${submittedCountText(submittedCount, Object.keys(room.players).length)}</div>`;
     return html;
   }
 
@@ -666,13 +1142,18 @@ function renderOnlineMode(){
 
 function renderLocalMode(){
   let html = `<div class="topbar"><div class="brand"><span class="thread-dot"></span>ito-line</div>
-    <button class="linkbtn" onclick="goTitle()">ホームへ</button></div>`;
+    <button class="linkbtn" onclick="goTitle()">${t('homeLink')}</button></div>`;
 
   if(localStep==='setup'){
-    html += `<h2>1台で回して遊ぶ</h2>`;
-    html += `<p class="subtitle">人数と名前を入れてね。番が来たら画面をその人に渡して数字を確認してもらいます。</p>`;
+    const l=currentLang();
+    html += `<div class="lang-row">
+      <button class="${lang==='ja'?'active':''}" onclick="setLang('ja')">日本語</button>
+      <button class="${lang==='en'?'active':''}" onclick="setLang('en')">English</button>
+    </div>`;
+    html += `<h2>${t('localSetupHeading')}</h2>`;
+    html += `<p class="subtitle">${t('localSetupSubtitle')}</p>`;
     html += `<div class="card">
-      <label class="label">人数</label>
+      <label class="label">${t('playerCountLabel')}</label>
       <div class="count-stepper">
         <button onclick="setLocalCount(-1)">−</button>
         <span class="num">${localCount}</span>
@@ -680,14 +1161,14 @@ function renderLocalMode(){
       </div>
       <div class="name-rows">`;
     for(let i=0;i<localCount;i++){
-      html += `<input id="ln-${i}" class="input" maxlength="12" placeholder="プレイヤー${i+1}" value="${esc(localNames[i]||'')}">`;
+      html += `<input id="ln-${i}" class="input" maxlength="12" placeholder="${playerPlaceholder(i+1)}" value="${esc(localNames[i]||'')}">`;
     }
     html += `</div></div>`;
-    html += `<div class="card"><h2 style="font-size:15px;">お題の決め方</h2>`;
-    html += topicModeSelector((local&&local.topicMode)||'presetRandom', 'localSetTopicModeBeforeStart', false, 'localChoosePresetBeforeStart', 'localSaveCustomBeforeStart', 'lct0');
+    html += `<div class="card"><h2 style="font-size:15px;">${t('topicSectionHeading')}</h2>`;
+    html += topicModeSelector({mode:(local&&local.topicMode)||'presetRandom', lang:l, onMode:'localSetTopicModeBeforeStart', onPickPreset:'localChoosePresetBeforeStart', onPickCommunity:'localChooseCommunityBeforeStart', onSaveCustom:'localSaveCustomBeforeStart', idPrefix:'lct0'});
     html += `</div>`;
-    if(errorMsg) html += `<div class="error">${esc(errorMsg)}</div>`;
-    html += `<button class="btn btn-primary" onclick="startLocalGame()">はじめる</button>`;
+    html += renderErrorBanner();
+    html += `<button class="btn btn-primary" onclick="startLocalGame()">${t('startLocalBtn')}</button>`;
     return html;
   }
 
@@ -697,12 +1178,12 @@ function renderLocalMode(){
     const ids=Object.keys(local.players);
     const id=ids[local.passIdx];
     const p=local.players[id];
-    html += `<div class="round-pill">ラウンド ${local.round}</div>`;
+    html += `<div class="round-pill">${roundLabel(local.round)}</div>`;
     html += `<div class="card" style="text-align:center;padding:34px 18px;">
-      <div style="font-size:15px;color:var(--ink-soft);margin-bottom:10px;">次の番</div>
-      <div style="font-size:23px;font-weight:900;margin-bottom:18px;">${esc(p.name)} さん</div>
-      <p style="font-size:13px;color:var(--ink-soft);">画面をこの人に渡してください。準備ができたらタップ。</p>
-      <button class="btn btn-secondary" style="margin-top:10px;" onclick="localRevealOwnNumber()">自分の数字を見る</button>
+      <div style="font-size:15px;color:var(--ink-soft);margin-bottom:10px;">${t('nextTurnLabel')}</div>
+      <div style="font-size:23px;font-weight:900;margin-bottom:18px;">${esc(withHonorific(p.name))}</div>
+      <p style="font-size:13px;color:var(--ink-soft);">${t('passInstructions')}</p>
+      <button class="btn btn-secondary" style="margin-top:10px;" onclick="localRevealOwnNumber()">${t('revealNumberBtn')}</button>
     </div>`;
     return html;
   }
@@ -713,22 +1194,23 @@ function renderLocalMode(){
     const p=local.players[id];
     html += `<div class="topic-banner"><div class="ttext">${esc(local.topic.text)}</div>
       <div class="scale"><span>${esc(local.topic.low)}</span><span>${esc(local.topic.high)}</span></div></div>`;
-    html += `<div class="card number-stage"><div class="lab">${esc(p.name)}さんの数字</div>
+    html += `<div class="card number-stage"><div class="lab">${numberOfLabel(esc(p.name))}</div>
       <div class="number-display">${p.number}</div></div>`;
-    html += `<div class="field"><label class="label">ヒントを入力(数字は言わないでね)</label>
-      <textarea id="lc-input" class="input" maxlength="40" placeholder="例: たまに無性に食べたくなる"></textarea></div>`;
-    html += `<button class="btn btn-primary" onclick="localSubmitClue()">決定して次の人へ渡す</button>`;
+    html += `<div class="field"><label class="label">${t('clueLabel')}</label>
+      <textarea id="lc-input" class="input" maxlength="40" placeholder="${t('cluePlaceholder')}"></textarea></div>`;
+    html += `<button class="btn btn-primary" onclick="localSubmitClue()">${t('decideAndPassBtn')}</button>`;
     return html;
   }
 
   if(local.phase==='retopic'){
-    html += `<h2>次のお題を決める</h2>`;
+    const l=currentLang();
+    html += `<h2>${t('retopicHeading')}</h2>`;
     html += `<div class="card">`;
-    html += topicModeSelector(local.topicMode, 'localSetTopicMode', false, 'localChoosePreset', 'localSaveCustomTopic', 'lct');
+    html += topicModeSelector({mode:local.topicMode, lang:l, onMode:'localSetTopicMode', onPickPreset:'localChoosePreset', onPickCommunity:'localChooseCommunity', onSaveCustom:'localSaveCustomTopic', idPrefix:'lct'});
     html += `</div>`;
-    if(errorMsg) html += `<div class="error">${esc(errorMsg)}</div>`;
+    html += renderErrorBanner();
     if(local.topicMode!=='custom'){
-      html += `<button class="btn btn-primary" onclick="beginLocalRound();render();">このお題で始める</button>`;
+      html += `<button class="btn btn-primary" onclick="beginLocalRound();render();">${t('thisTopicStartBtn')}</button>`;
     }
     return html;
   }
@@ -741,30 +1223,24 @@ function renderLocalMode(){
   return html;
 }
 
-/* small wrappers so the shared topic selector (used pre-start, where `local` may not exist yet) works */
-function localSetTopicModeBeforeStart(m){
-  if(!local) local={topicMode:m, pendingTopic:null};
-  else { local.topicMode=m; local.pendingTopic=null; }
-  render();
-}
-function localChoosePresetBeforeStart(idx){
-  if(!local) local={topicMode:'presetChoice', pendingTopic:null};
-  local.pendingTopic=PRESET_TOPICS[idx];
-  render();
-}
-function localSaveCustomBeforeStart(){
-  const text=(document.getElementById('lct0-text').value||'').trim().slice(0,28);
-  const low=(document.getElementById('lct0-low').value||'').trim().slice(0,10)||'弱い';
-  const high=(document.getElementById('lct0-high').value||'').trim().slice(0,10)||'強い';
-  if(!text){ errorMsg='お題を入力してください'; render(); return; }
-  if(!local) local={topicMode:'custom', pendingTopic:null};
-  local.pendingTopic={text, low, high};
-  errorMsg='';
-  render();
-}
+/* ---------- expose handlers for inline HTML event attributes ----------
+   (top-level functions in a module script are NOT auto-attached to window,
+   unlike a classic script — so anything referenced from onclick="..." in
+   the templates above must be explicitly exported here.) */
+Object.assign(window, {
+  setLang, goBank, bankAddTopic, communityShuffle,
+  beginLocalRound, copyCode, createRoomAction, goLocalSetup, goOnlineHome, goTitle,
+  hostStartRound, joinRoomAction, localRevealOwnNumber, localSubmitClue, render,
+  retrySync, setLocalCount, startLocalGame, submitClueAction, toggleHelp,
+  moveOrder, hostReveal, hostNextRound, localMoveOrder, localReveal, localStartNextRound,
+  hostSetTopicMode, hostChoosePreset, hostSaveCustomTopic, hostChooseCommunity,
+  localSetTopicModeBeforeStart, localChoosePresetBeforeStart, localSaveCustomBeforeStart, localChooseCommunityBeforeStart,
+  localSetTopicMode, localChoosePreset, localSaveCustomTopic, localChooseCommunity
+});
 
 /* ---------- init ---------- */
 render();
+initAuth();
 </script>
 </body>
 </html>
