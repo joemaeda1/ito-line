@@ -105,7 +105,8 @@
     font-size:13px;text-align:left;cursor:pointer;color:var(--ink);font-family:var(--display);
   }
   .topic-chip small{display:block;color:var(--ink-soft);font-size:11px;margin-top:3px;}
-  .topic-chip.selected{border-color:var(--thread);background:#fff3ea;font-weight:700;}
+  .topic-chip.selected{border-color:var(--thread);border-width:2.5px;background:#fff3ea;font-weight:700;box-shadow:0 0 0 3px rgba(232,113,74,0.22);}
+  .topic-chip.selected::after{content:'✓';float:right;color:var(--thread);font-weight:900;}
   .seg{display:flex;background:rgba(255,255,255,0.08);border-radius:11px;padding:4px;gap:4px;margin-bottom:10px;}
   .seg button{flex:1;border:none;background:transparent;color:var(--muted);padding:8px 2px;border-radius:8px;font-family:var(--display);font-size:11.5px;font-weight:700;cursor:pointer;}
   .seg button.active{background:var(--mustard);color:#2B2440;}
@@ -222,8 +223,8 @@ const STRINGS = {
     btnBank:"📚 お題バンクを見る・追加する",
     footerNote:"カードゲーム「ito」にインスパイアされた非公式のファンメイドアプリです。",
     onlineHomeHeading:"オンラインで遊ぶ", yourNameLabel:"あなたの名前",
-    namePlaceholderHost:"例: たろう", createRoomBtn:"ルームを作る(ホストになる)", creatingBtn:"作成中…",
-    roomCodeLabel:"ルームコード", codePlaceholder:"ABCD", namePlaceholderGuest:"例: はな",
+    namePlaceholderHost:"たろう", createRoomBtn:"ルームを作る(ホストになる)", creatingBtn:"作成中…",
+    roomCodeLabel:"ルームコード", codePlaceholder:"ABCD", namePlaceholderGuest:"はな",
     joinRoomBtn:"ルームに参加する", joiningBtn:"参加中…", homeLink:"ホームへ", loadingText:"読み込み中…",
     err_codeRequired:"ルームコードを入力してください",
     err_roomNotFound:"そのコードのルームが見つかりません。コードを確認するか、ホストにもう一度確認してもらってください。",
@@ -241,14 +242,14 @@ const STRINGS = {
     moreCandidatesHint:"候補は一部だけ表示しています。ランダムでもOK!",
     communityEmpty:"まだ投稿がありません。ホーム画面の「お題バンク」から追加してみてね。",
     communityShuffleBtn:"他の候補を見る",
-    customTextPlaceholder:"例: 部屋にあると落ち着く物",
-    customLowPlaceholder:"低い側(例: 弱い)", customHighPlaceholder:"高い側(例: 強い)",
+    customTextPlaceholder:"部屋にあると落ち着く物",
+    customLowPlaceholder:"低い側(弱い)", customHighPlaceholder:"高い側(強い)",
     shareToBankLabel:"💡 このお題をみんなのバンクに追加する",
     saveCustomTopicBtn:"このお題にする", selectedTopicPrefix:"選択中:",
     startRoundBtn:"ゲーム開始", nextRoundBtn:"次のラウンドを始める",
     waitingHostTopicText:"ホストがお題を選んでいます。もうすぐ始まります…",
     yourNumberLabel:"あなたの数字", clueLabel:"ヒントを入力(数字は言わないでね)",
-    cluePlaceholder:"例: たまに無性に食べたくなる", submitClueBtn:"ヒントを送信",
+    cluePlaceholder:"たまに無性に食べたくなる", submitClueBtn:"ヒントを送信",
     waitingOthersText:"送信しました。他の人を待っています…",
     orderInstructions:"ヒントを見ながら、数字が小さい順(上→下)に並べ替えよう。並べ終わったら「判定する」!",
     judgeBtn:"判定する", waitingHostJudgeText:"ホストが判定します。みんなで相談して並べてね。",
@@ -284,8 +285,8 @@ const STRINGS = {
     btnBank:"📚 Browse & add topics",
     footerNote:"An unofficial fan-made app inspired by the card game “ito.”",
     onlineHomeHeading:"Play online", yourNameLabel:"Your name",
-    namePlaceholderHost:"e.g. Alex", createRoomBtn:"Create a room (become host)", creatingBtn:"Creating…",
-    roomCodeLabel:"Room code", codePlaceholder:"ABCD", namePlaceholderGuest:"e.g. Sam",
+    namePlaceholderHost:"Alex", createRoomBtn:"Create a room (become host)", creatingBtn:"Creating…",
+    roomCodeLabel:"Room code", codePlaceholder:"ABCD", namePlaceholderGuest:"Sam",
     joinRoomBtn:"Join a room", joiningBtn:"Joining…", homeLink:"Home", loadingText:"Loading…",
     err_codeRequired:"Please enter a room code",
     err_roomNotFound:"No room found with that code. Double-check it, or ask your host to confirm.",
@@ -303,14 +304,14 @@ const STRINGS = {
     moreCandidatesHint:"Showing a few options — random works great too!",
     communityEmpty:"No submissions yet. Add some from the “Topic bank” on the home screen.",
     communityShuffleBtn:"Show other options",
-    customTextPlaceholder:"e.g. Things that make a room feel cozy",
-    customLowPlaceholder:"Low end (e.g. Mild)", customHighPlaceholder:"High end (e.g. Intense)",
+    customTextPlaceholder:"Things that make a room feel cozy",
+    customLowPlaceholder:"Low end (Mild)", customHighPlaceholder:"High end (Intense)",
     shareToBankLabel:"💡 Add this topic to the community bank",
     saveCustomTopicBtn:"Use this topic", selectedTopicPrefix:"Selected:",
     startRoundBtn:"Start game", nextRoundBtn:"Start next round",
     waitingHostTopicText:"The host is choosing a topic. Starting soon…",
     yourNumberLabel:"Your number", clueLabel:"Enter a hint (don't say the number!)",
-    cluePlaceholder:"e.g. I crave it out of nowhere sometimes", submitClueBtn:"Submit hint",
+    cluePlaceholder:"I crave it out of nowhere sometimes", submitClueBtn:"Submit hint",
     waitingOthersText:"Sent! Waiting for everyone else…",
     orderInstructions:"Use the hints to arrange everyone from smallest to largest (top→bottom). Then hit “Reveal”!",
     judgeBtn:"Reveal", waitingHostJudgeText:"The host will reveal. Talk it through and arrange together.",
@@ -693,7 +694,7 @@ function hostStartRound(){
   safeWrite(()=>update(roomRef(room.code), updates));
 }
 function submitClueAction(){
-  const text=(document.getElementById('clue-input').value||'').trim().slice(0,40);
+  const text=(document.getElementById('clue-input').value||'').trim();
   room.players[myId].clue=text;
   room.players[myId].submitted=true;
   const all=Object.values(room.players).every(p=>p.submitted);
@@ -785,7 +786,7 @@ function localRevealOwnNumber(){ local.phase='pass-show'; render(); }
 function localSubmitClue(){
   const ids=Object.keys(local.players);
   const id=ids[local.passIdx];
-  const text=(document.getElementById('lc-input').value||'').trim().slice(0,40);
+  const text=(document.getElementById('lc-input').value||'').trim();
   local.players[id].clue=text;
   local.passIdx++;
   local.phase = (local.passIdx>=ids.length) ? 'order' : 'pass';
@@ -885,7 +886,7 @@ function topicModeSelector(cfg){
   </div>`;
   if(cfg.mode==='presetChoice'){
     const list=topicsFor(l).slice(0,8);
-    html += `<div class="topic-chip-grid">` + list.map((tp,i)=>`<button class="topic-chip" onclick="${cfg.onPickPreset}(${i})">${esc(tp.text)}<small>${esc(tp.low)} → ${esc(tp.high)}</small></button>`).join('') + `</div>`;
+    html += `<div class="topic-chip-grid">` + list.map((tp,i)=>`<button class="topic-chip ${cfg.selectedText===tp.text?'selected':''}" onclick="${cfg.onPickPreset}(${i})">${esc(tp.text)}<small>${esc(tp.low)} → ${esc(tp.high)}</small></button>`).join('') + `</div>`;
     html += `<div class="helper">${tl(l,'moreCandidatesHint')}</div>`;
   }
   if(cfg.mode==='community'){
@@ -896,7 +897,7 @@ function topicModeSelector(cfg){
     } else if(sample.length===0){
       html += `<p class="helper">${tl(l,'communityEmpty')}</p>`;
     } else {
-      html += `<div class="topic-chip-grid">` + sample.map((tp,i)=>`<button class="topic-chip" onclick="${cfg.onPickCommunity}(${i})">${esc(tp.text)}<small>${esc(tp.low)} → ${esc(tp.high)}</small></button>`).join('') + `</div>`;
+      html += `<div class="topic-chip-grid">` + sample.map((tp,i)=>`<button class="topic-chip ${cfg.selectedText===tp.text?'selected':''}" onclick="${cfg.onPickCommunity}(${i})">${esc(tp.text)}<small>${esc(tp.low)} → ${esc(tp.high)}</small></button>`).join('') + `</div>`;
       html += `<button class="btn btn-ghost btn-sm" style="margin-top:8px;" onclick="communityShuffle()">${tl(l,'communityShuffleBtn')}</button>`;
     }
   }
@@ -1099,7 +1100,7 @@ function renderOnlineMode(){
     html += `</div>`;
     if(isHost()){
       html += `<div class="card"><h2 style="font-size:15px;">${t('topicSectionHeading')}</h2>`;
-      html += topicModeSelector({mode:room.topicMode, lang:l, onMode:'hostSetTopicMode', onPickPreset:'hostChoosePreset', onPickCommunity:'hostChooseCommunity', onSaveCustom:'hostSaveCustomTopic', idPrefix:'ct'});
+      html += topicModeSelector({mode:room.topicMode, lang:l, onMode:'hostSetTopicMode', onPickPreset:'hostChoosePreset', onPickCommunity:'hostChooseCommunity', onSaveCustom:'hostSaveCustomTopic', idPrefix:'ct', selectedText: room.pendingTopic ? room.pendingTopic.text : null});
       if(room.pendingTopic){
         html += `<div class="helper">${t('selectedTopicPrefix')} ${quoteWrap(esc(room.pendingTopic.text))}</div>`;
       }
@@ -1122,7 +1123,7 @@ function renderOnlineMode(){
     html += renderErrorBanner();
     if(!me.submitted){
       html += `<div class="field"><label class="label">${t('clueLabel')}</label>
-        <textarea id="clue-input" class="input" maxlength="40" placeholder="${t('cluePlaceholder')}"></textarea></div>`;
+        <textarea id="clue-input" class="input" placeholder="${t('cluePlaceholder')}"></textarea></div>`;
       html += `<button class="btn btn-primary" onclick="submitClueAction()">${t('submitClueBtn')}</button>`;
     } else {
       html += `<p class="subtitle">${t('waitingOthersText')}</p>`;
@@ -1165,7 +1166,7 @@ function renderLocalMode(){
     }
     html += `</div></div>`;
     html += `<div class="card"><h2 style="font-size:15px;">${t('topicSectionHeading')}</h2>`;
-    html += topicModeSelector({mode:(local&&local.topicMode)||'presetRandom', lang:l, onMode:'localSetTopicModeBeforeStart', onPickPreset:'localChoosePresetBeforeStart', onPickCommunity:'localChooseCommunityBeforeStart', onSaveCustom:'localSaveCustomBeforeStart', idPrefix:'lct0'});
+    html += topicModeSelector({mode:(local&&local.topicMode)||'presetRandom', lang:l, onMode:'localSetTopicModeBeforeStart', onPickPreset:'localChoosePresetBeforeStart', onPickCommunity:'localChooseCommunityBeforeStart', onSaveCustom:'localSaveCustomBeforeStart', idPrefix:'lct0', selectedText: (local&&local.pendingTopic)?local.pendingTopic.text:null});
     html += `</div>`;
     html += renderErrorBanner();
     html += `<button class="btn btn-primary" onclick="startLocalGame()">${t('startLocalBtn')}</button>`;
@@ -1197,7 +1198,7 @@ function renderLocalMode(){
     html += `<div class="card number-stage"><div class="lab">${numberOfLabel(esc(p.name))}</div>
       <div class="number-display">${p.number}</div></div>`;
     html += `<div class="field"><label class="label">${t('clueLabel')}</label>
-      <textarea id="lc-input" class="input" maxlength="40" placeholder="${t('cluePlaceholder')}"></textarea></div>`;
+      <textarea id="lc-input" class="input" placeholder="${t('cluePlaceholder')}"></textarea></div>`;
     html += `<button class="btn btn-primary" onclick="localSubmitClue()">${t('decideAndPassBtn')}</button>`;
     return html;
   }
@@ -1206,7 +1207,7 @@ function renderLocalMode(){
     const l=currentLang();
     html += `<h2>${t('retopicHeading')}</h2>`;
     html += `<div class="card">`;
-    html += topicModeSelector({mode:local.topicMode, lang:l, onMode:'localSetTopicMode', onPickPreset:'localChoosePreset', onPickCommunity:'localChooseCommunity', onSaveCustom:'localSaveCustomTopic', idPrefix:'lct'});
+    html += topicModeSelector({mode:local.topicMode, lang:l, onMode:'localSetTopicMode', onPickPreset:'localChoosePreset', onPickCommunity:'localChooseCommunity', onSaveCustom:'localSaveCustomTopic', idPrefix:'lct', selectedText: local.pendingTopic ? local.pendingTopic.text : null});
     html += `</div>`;
     html += renderErrorBanner();
     if(local.topicMode!=='custom'){
