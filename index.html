@@ -129,6 +129,9 @@
   .round-pill{display:inline-block;background:rgba(255,255,255,0.1);border-radius:20px;padding:5px 13px;font-size:12px;color:var(--muted);margin-bottom:10px;}
   .history-dots{display:flex;gap:5px;margin-bottom:10px;}
   .history-dots span{width:9px;height:9px;border-radius:50%;display:inline-block;}
+  .order-anchor{display:flex;align-items:center;justify-content:space-between;padding:6px 22px 6px 34px;font-size:13px;font-weight:700;color:var(--muted);}
+  .order-anchor-top{border-bottom:1px dashed rgba(255,255,255,0.08);margin-bottom:6px;padding-bottom:8px;}
+  .order-anchor-bottom{border-top:1px dashed rgba(255,255,255,0.08);margin-top:-4px;padding-top:8px;margin-bottom:14px;}
   .thread-wrap{position:relative;padding-left:22px;margin-top:6px;}
   .thread-wrap::before{content:'';position:absolute;left:7px;top:6px;bottom:6px;width:3px;background:repeating-linear-gradient(to bottom, var(--thread) 0 8px, transparent 8px 14px);border-radius:3px;}
   .order-card{
@@ -174,6 +177,13 @@
   .bank-item{background:var(--card);border:1px solid var(--card-edge);border-radius:12px;padding:12px 14px;margin-bottom:10px;color:var(--ink);}
   .bank-item .bname{font-family:var(--hand);font-size:17px;}
   .bank-item .bscale{display:flex;justify-content:space-between;font-size:11px;color:var(--ink-soft);margin-top:4px;}
+  .help-step{display:flex;gap:14px;align-items:flex-start;background:rgba(255,255,255,0.05);border-radius:14px;padding:14px;margin-bottom:10px;}
+  .help-step-num{width:28px;height:28px;border-radius:50%;background:var(--thread);color:var(--white);font-weight:900;font-size:13px;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;}
+  .help-step-title{font-weight:700;font-size:15px;margin-bottom:4px;}
+  .help-step-desc{font-size:13px;color:#dcd9ee;line-height:1.7;}
+  .help-tip-box{background:rgba(232,179,57,0.12);border:1px solid rgba(232,179,57,0.3);border-radius:14px;padding:14px 16px;margin-top:6px;}
+  .help-tip-title{font-weight:700;font-size:14px;margin-bottom:8px;color:var(--mustard);}
+  .help-tip-box ul{margin:0;padding-left:18px;font-size:13px;color:#dcd9ee;line-height:1.85;}
   .toast-ok{font-size:13px;color:#bfe8cc;background:rgba(92,156,114,0.18);border:1px solid rgba(92,156,114,0.4);padding:9px 12px;border-radius:10px;margin-bottom:12px;}
   @media (prefers-reduced-motion: no-preference){
     .order-card{animation:settle 0.3s ease;}
@@ -249,9 +259,11 @@ const STRINGS = {
     startRoundBtn:"ゲーム開始", nextRoundBtn:"次のラウンドを始める",
     waitingHostTopicText:"ホストがお題を選んでいます。もうすぐ始まります…",
     yourNumberLabel:"あなたの数字", clueLabel:"ヒントを入力(数字は言わないでね)",
-    cluePlaceholder:"たまに無性に食べたくなる", submitClueBtn:"ヒントを送信",
+    cluePlaceholder:"", submitClueBtn:"ヒントを送信",
     waitingOthersText:"送信しました。他の人を待っています…",
     orderInstructions:"ヒントを見ながら、数字が小さい順(上→下)に並べ替えよう。並べ終わったら「判定する」!",
+    orderLowLabel:"⬆ 小さい", orderHighLabel:"⬇ 大きい",
+    btnHelp:"❓ 遊び方", helpHeading:"遊び方",
     judgeBtn:"判定する", waitingHostJudgeText:"ホストが判定します。みんなで相談して並べてね。",
     noClueText:"(ヒントなし)",
     successBannerText:"成功! 糸はつながった 🧵", failBannerText:"失敗… 糸が切れた",
@@ -311,9 +323,11 @@ const STRINGS = {
     startRoundBtn:"Start game", nextRoundBtn:"Start next round",
     waitingHostTopicText:"The host is choosing a topic. Starting soon…",
     yourNumberLabel:"Your number", clueLabel:"Enter a hint (don't say the number!)",
-    cluePlaceholder:"I crave it out of nowhere sometimes", submitClueBtn:"Submit hint",
+    cluePlaceholder:"", submitClueBtn:"Submit hint",
     waitingOthersText:"Sent! Waiting for everyone else…",
-    orderInstructions:"Use the hints to arrange everyone from smallest to largest (top→bottom). Then hit “Reveal”!",
+    orderInstructions:"Use the hints to arrange everyone from smallest (top) to largest (bottom). Then hit “Reveal”!",
+    orderLowLabel:"⬆ Smallest", orderHighLabel:"⬇ Largest",
+    btnHelp:"❓ How to play", helpHeading:"How to play",
     judgeBtn:"Reveal", waitingHostJudgeText:"The host will reveal. Talk it through and arrange together.",
     noClueText:"(no hint)",
     successBannerText:"Success! The thread holds 🧵", failBannerText:"Not quite… the thread snapped",
@@ -578,6 +592,7 @@ function goTitle(){
   mode=null; onlineStep='home'; room=null; local=null; errorMsg=''; syncError=false;
   render();
 }
+function goHelp(){ mode='help'; render(); }
 function goOnlineHome(){ mode='online'; onlineStep='home'; errorMsg=''; syncError=false; render(); }
 function goLocalSetup(){ mode='local'; localStep='setup'; errorMsg=''; render(); }
 function toggleHelp(){ showHelp=!showHelp; render(); }
@@ -940,6 +955,10 @@ function renderOrderAndReveal(playersObj, order, topic, phase, round, history, h
 
   if(phase==='order'){
     html += `<p class="subtitle">${t('orderInstructions')}</p>`;
+    html += `<div class="order-anchor order-anchor-top">
+      <span>${t('orderLowLabel')}</span>
+      <span style="opacity:0.5;font-size:11px;">${esc(topic.low)}</span>
+    </div>`;
     html += `<div class="thread-wrap">`;
     order.forEach((id,idx)=>{
       const p=playersObj[id];
@@ -955,6 +974,10 @@ function renderOrderAndReveal(playersObj, order, topic, phase, round, history, h
       </div></div>`;
     });
     html += `</div>`;
+    html += `<div class="order-anchor order-anchor-bottom">
+      <span>${t('orderHighLabel')}</span>
+      <span style="opacity:0.5;font-size:11px;">${esc(topic.high)}</span>
+    </div>`;
     if(hostAllowed){
       html += `<button class="btn btn-primary" onclick="${cb.reveal}()">${t('judgeBtn')}</button>`;
     } else {
@@ -996,6 +1019,7 @@ function render(){
   else if(mode==='online') html=renderOnlineMode();
   else if(mode==='local') html=renderLocalMode();
   else if(mode==='bank') html=renderBankMode();
+  else if(mode==='help') html=renderHelpMode();
   app.innerHTML = html;
 }
 function renderAuthLoading(){
@@ -1009,26 +1033,72 @@ function renderAuthErrorScreen(){
 }
 
 function renderTitleScreen(){
-  let html = `<div class="topbar"><div class="brand"><span class="thread-dot"></span>ito-line</div>
-    <button class="linkbtn" onclick="toggleHelp()">${showHelp?t('helpToggleClose'):t('helpToggleOpen')}</button></div>`;
+  let html = `<div class="topbar"><div class="brand"><span class="thread-dot"></span>ito-line</div></div>`;
   html += `<div class="lang-row">
     <button class="${lang==='ja'?'active':''}" onclick="setLang('ja')">日本語</button>
     <button class="${lang==='en'?'active':''}" onclick="setLang('en')">English</button>
   </div>`;
   html += `<h1>${t('titleHeading')}</h1>`;
   html += `<p class="subtitle">${t('titleSubtitle')}</p>`;
-  if(showHelp){
-    html += `<div class="help-box"><b>${t('helpBoxTitle')}</b><ol>` +
-      STRINGS[currentLang()].helpSteps.map(s=>`<li>${esc(s)}</li>`).join('') +
-      `</ol></div>`;
-  }
   if(errorMsg) html += `<div class="error">${esc(errorMsg)}</div>`;
   html += `<div class="stack">
     <button class="btn btn-primary" onclick="goOnlineHome()">${t('btnOnline')}</button>
     <button class="btn btn-secondary" onclick="goLocalSetup()">${t('btnLocal')}</button>
+    <button class="btn btn-ghost" onclick="goHelp()">${t('btnHelp')}</button>
     <button class="btn btn-ghost" onclick="goBank()">${t('btnBank')}</button>
   </div>`;
   html += `<footer class="note">${t('footerNote')}</footer>`;
+  return html;
+}
+
+function renderHelpMode(){
+  const l=currentLang();
+  const steps = l==='ja' ? [
+    {icon:'🎴', title:'お題が出る', body:'みんなに同じお題が表示されます。例えば「辛い食べ物」や「緊張する場面」など。'},
+    {icon:'🔢', title:'秘密の数字をもらう', body:'1〜100の数字がランダムに配られます。自分の数字は自分にしか見えません。'},
+    {icon:'💬', title:'ヒントを出す', body:'自分の数字がお題のどのくらいの位置か、言葉で表現します。数字は絶対に言わないで！'},
+    {icon:'🔀', title:'みんなで並べる', body:'ヒントだけを手がかりに、数字が小さい順(上)から大きい順(下)になるよう並べ替えます。'},
+    {icon:'🧵', title:'判定！', body:'並べた順番を公開！全員の数字が上から小さい順に並んでいれば「糸はつながった」成功です！'},
+  ] : [
+    {icon:'🎴', title:'A topic is revealed', body:'Everyone sees the same topic — like "Spicy food" or "Nerve-wracking situations."'},
+    {icon:'🔢', title:'You get a secret number', body:'Each player gets a random number from 1 to 100. Only you can see yours.'},
+    {icon:'💬', title:'Give a hint', body:'Describe where your number falls on the topic scale — using words, never the number itself.'},
+    {icon:'🔀', title:'Arrange together', body:'Using only the hints, arrange everyone from smallest number (top) to largest (bottom).'},
+    {icon:'🧵', title:'Reveal!', body:'Flip the cards! If the numbers go smallest to largest top-to-bottom, the thread holds — you win!'},
+  ];
+  const tipTitle = l==='ja' ? 'コツ' : 'Tips';
+  const tips = l==='ja' ? [
+    '数字の「感覚」を共有するのがポイント — 「激辛チャレンジの中では普通」みたいな伝え方もあり',
+    'ヒントが曖昧なほど面白くなる。みんなで悩もう',
+    '並べ替えは全員で相談できる — どんどん意見を出して',
+  ] : [
+    'Share the "feeling" of your number — "It\'s moderate by my standards, but I have high tolerance" counts',
+    'Vague hints make it more fun. Debate is part of the game',
+    'The arrangement phase is collaborative — everyone can weigh in',
+  ];
+  let html = `<div class="topbar"><div class="brand"><span class="thread-dot"></span>ito-line</div>
+    <button class="linkbtn" onclick="goTitle()">${t('homeLink')}</button></div>`;
+  html += `<div class="lang-row">
+    <button class="${l==='ja'?'active':''}" onclick="setLang('ja')">日本語</button>
+    <button class="${l==='en'?'active':''}" onclick="setLang('en')">English</button>
+  </div>`;
+  html += `<h2>${t('helpHeading')}</h2>`;
+  steps.forEach((s,i)=>{
+    html += `<div class="help-step">
+      <div class="help-step-num">${i+1}</div>
+      <div class="help-step-body">
+        <div class="help-step-title">${s.icon} ${esc(s.title)}</div>
+        <div class="help-step-desc">${esc(s.body)}</div>
+      </div>
+    </div>`;
+  });
+  html += `<div class="help-tip-box"><div class="help-tip-title">💡 ${esc(tipTitle)}</div><ul>`;
+  tips.forEach(tip=>{ html += `<li>${esc(tip)}</li>`; });
+  html += `</ul></div>`;
+  html += `<div class="stack" style="margin-top:18px;">
+    <button class="btn btn-primary" onclick="goOnlineHome()">${t('btnOnline')}</button>
+    <button class="btn btn-secondary" onclick="goLocalSetup()">${t('btnLocal')}</button>
+  </div>`;
   return html;
 }
 
@@ -1229,7 +1299,7 @@ function renderLocalMode(){
    unlike a classic script — so anything referenced from onclick="..." in
    the templates above must be explicitly exported here.) */
 Object.assign(window, {
-  setLang, goBank, bankAddTopic, communityShuffle,
+  setLang, goBank, goHelp, bankAddTopic, communityShuffle,
   beginLocalRound, copyCode, createRoomAction, goLocalSetup, goOnlineHome, goTitle,
   hostStartRound, joinRoomAction, localRevealOwnNumber, localSubmitClue, render,
   retrySync, setLocalCount, startLocalGame, submitClueAction, toggleHelp,
