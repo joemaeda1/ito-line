@@ -184,6 +184,14 @@
   .help-tip-box{background:rgba(232,179,57,0.12);border:1px solid rgba(232,179,57,0.3);border-radius:14px;padding:14px 16px;margin-top:6px;}
   .help-tip-title{font-weight:700;font-size:14px;margin-bottom:8px;color:var(--mustard);}
   .help-tip-box ul{margin:0;padding-left:18px;font-size:13px;color:#dcd9ee;line-height:1.85;}
+  .oath-card{background:#1a2044;border:2.5px solid var(--mustard);border-radius:16px;padding:20px 18px 14px;margin-top:18px;box-shadow:0 8px 24px rgba(0,0,0,0.35);}
+  .oath-header{display:flex;align-items:baseline;gap:10px;margin-bottom:14px;}
+  .oath-logo{font-family:var(--hand);font-size:28px;font-weight:700;color:var(--mustard);letter-spacing:-1px;}
+  .oath-title{font-size:14px;font-weight:700;color:var(--mustard);}
+  .oath-list{margin:0;padding-left:0;list-style:none;display:flex;flex-direction:column;gap:14px;counter-reset:oath-counter;}
+  .oath-list li{font-size:15px;font-weight:700;color:var(--white);line-height:1.6;padding-left:22px;position:relative;}
+  .oath-list li::before{content:counter(oath-counter) '.';counter-increment:oath-counter;position:absolute;left:0;color:var(--mustard);font-weight:900;font-size:13px;}
+  .oath-note{font-size:11px;color:rgba(255,255,255,0.35);margin-top:14px;text-align:right;}
   .toast-ok{font-size:13px;color:#bfe8cc;background:rgba(92,156,114,0.18);border:1px solid rgba(92,156,114,0.4);padding:9px 12px;border-radius:10px;margin-bottom:12px;}
   @media (prefers-reduced-motion: no-preference){
     .order-card{animation:settle 0.3s ease;}
@@ -1095,6 +1103,27 @@ function renderHelpMode(){
   html += `<div class="help-tip-box"><div class="help-tip-title">💡 ${esc(tipTitle)}</div><ul>`;
   tips.forEach(tip=>{ html += `<li>${esc(tip)}</li>`; });
   html += `</ul></div>`;
+
+  /* 3つの誓い card */
+  const oaths = [
+    '全員が楽しめることを第一に遊びます',
+    'だれかが悩んだときは、積極的に考えを聞いてみます',
+    '意見がズレるのはあたりまえの精神で、価値観の違いをむしろ楽しみます',
+  ];
+  const oathsEN = [
+    'We play with everyone\'s enjoyment as the top priority',
+    'When someone is stuck, we actively try to hear what they\'re thinking',
+    'Disagreements are natural — we embrace and enjoy differences in values',
+  ];
+  const oathList = l==='en' ? oathsEN : oaths;
+  const oathTitle = l==='en' ? 'ito\'s three pledges' : 'ito 3つの誓い';
+  const oathNote = l==='en' ? 'Place where everyone can see it while playing!' : '遊ぶとき、みんなの見えるところに置いてね！';
+  html += `<div class="oath-card">
+    <div class="oath-header"><span class="oath-logo">ito</span><span class="oath-title">${esc(oathTitle)}</span></div>
+    <ol class="oath-list">`;
+  oathList.forEach(o=>{ html += `<li>${esc(o)}</li>`; });
+  html += `</ol><div class="oath-note">${esc(oathNote)}</div></div>`;
+
   html += `<div class="stack" style="margin-top:18px;">
     <button class="btn btn-primary" onclick="goOnlineHome()">${t('btnOnline')}</button>
     <button class="btn btn-secondary" onclick="goLocalSetup()">${t('btnLocal')}</button>
